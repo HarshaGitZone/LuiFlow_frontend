@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Search, Filter, Edit, Trash2, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Plus, Search, Filter, Edit, Trash2, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { useCurrency } from '../contexts/CurrencyContext'
 import axios from 'axios'
 
@@ -14,6 +14,9 @@ const Transactions = () => {
   const [totalPages, setTotalPages] = useState(1)
   const [totalResults, setTotalResults] = useState(0)
   const [categories, setCategories] = useState([])
+  const [editingTransaction, setEditingTransaction] = useState(null)
+  const [editForm, setEditForm] = useState({})
+  const [showEditModal, setShowEditModal] = useState(false)
 
   const fetchTransactions = async () => {
     try {
@@ -54,10 +57,39 @@ const Transactions = () => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
       try {
         await axios.delete(`http://localhost:10000/api/transactions/${id}`)
-        fetchTransactions()
+        fetchTransactions() // Refresh list
       } catch (error) {
         console.error('Error deleting transaction:', error)
       }
+    }
+  }
+
+  const handleEdit = (transaction) => {
+    setEditingTransaction(transaction)
+    setEditForm({
+      date: new Date(transaction.date).toISOString().split('T')[0],
+      amount: transaction.amount,
+      type: transaction.type,
+      category: transaction.category,
+      description: transaction.description
+    })
+    setShowEditModal(true)
+  }
+
+  const handleUpdate = async () => {
+    try {
+      const updatedTransaction = {
+        ...editForm,
+        date: new Date(editForm.date)
+      }
+      
+      await axios.put(`http://localhost:10000/api/transactions/${editingTransaction._id}`, updatedTransaction)
+      setShowEditModal(false)
+      setEditingTransaction(null)
+      setEditForm({})
+      fetchTransactions() // Refresh list
+    } catch (error) {
+      console.error('Error updating transaction:', error)
     }
   }
 
@@ -186,12 +218,17 @@ const Transactions = () => {
                           {formatAmountWithSign(transaction.amount, transaction.type)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button className="text-blue-600 hover:text-blue-900 mr-3 flex items-center">
+                          <button 
+                            onClick={() => handleEdit(transaction)}
+                            className="text-blue-600 hover:text-blue-900 mr-3 flex items-center"
+                            title="Edit transaction"
+                          >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button 
                             onClick={() => handleDelete(transaction._id)}
                             className="text-red-600 hover:text-red-900 flex items-center"
+                            title="Delete transaction"
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -239,8 +276,102 @@ const Transactions = () => {
           </>
         )}
       </div>
-    </div>
-  )
+    {/* Edit Modal */}
+    {showEditModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900">Edit Transaction</h3>
+            <button 
+              onClick={() => {
+                setShowEditModal(false)
+                setEditingTransaction(null)
+                setEditForm({})
+              }}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+              <input
+                type="date"
+                value={editForm.date}
+                onChange={(e) => setEditForm({...editForm, date: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+              <input
+                type="text"
+                value={editForm.description}
+                onChange={(e) => setEditForm({...editForm, description: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
+              <input
+                type="number"
+                step="0.01"
+                value={editForm.amount}
+                onChange={(e) => setEditForm({...editForm, amount: parseFloat(e.target.value)})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+              <select
+                value={editForm.type}
+                onChange={(e) => setEditForm({...editForm, type: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+              <input
+                type="text"
+                value={editForm.category}
+                onChange={(e) => setEditForm({...editForm, category: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          </div>
+          
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={() => {
+                setShowEditModal(false)
+                setEditingTransaction(null)
+                setEditForm({})
+              }}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleUpdate}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Update Transaction
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+)
 }
 
 export default Transactions
