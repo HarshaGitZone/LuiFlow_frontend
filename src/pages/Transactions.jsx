@@ -212,26 +212,28 @@ const Transactions = () => {
                             {transaction.type}
                           </span>
                         </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
+                        <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-medium ${
                           transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
                         }`}>
                           {formatAmountWithSign(transaction.amount, transaction.type)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button 
-                            onClick={() => handleEdit(transaction)}
-                            className="text-blue-600 hover:text-blue-900 mr-3 flex items-center"
-                            title="Edit transaction"
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(transaction._id)}
-                            className="text-red-600 hover:text-red-900 flex items-center"
-                            title="Delete transaction"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center justify-end gap-3">
+                            <button
+                              onClick={() => handleEdit(transaction)}
+                              className="inline-flex items-center text-blue-600 hover:text-blue-900"
+                              title="Edit transaction"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(transaction._id)}
+                              className="inline-flex items-center text-red-600 hover:text-red-900"
+                              title="Delete transaction"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
