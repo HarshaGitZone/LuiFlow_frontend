@@ -1,7 +1,42 @@
-import React from 'react'
-import { DollarSign, TrendingUp, TrendingDown, Receipt } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { IndianRupee, TrendingUp, TrendingDown, Receipt } from 'lucide-react'
+import { useCurrency } from '../contexts/CurrencyContext'
+import axios from 'axios'
 
 const Dashboard = () => {
+  const { formatAmount, formatAmountWithSign } = useCurrency()
+  const [summary, setSummary] = useState({ totalIncome: 0, totalExpenses: 0, netFlow: 0 })
+  const [recentTransactions, setRecentTransactions] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        // Fetch summary
+        const summaryResponse = await axios.get('http://localhost:10000/api/transactions/summary')
+        setSummary(summaryResponse.data)
+
+        // Fetch recent transactions
+        const transactionsResponse = await axios.get('http://localhost:10000/api/transactions?limit=5')
+        setRecentTransactions(transactionsResponse.data.transactions)
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -15,11 +50,11 @@ const Dashboard = () => {
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center">
             <div className="p-2 bg-green-100 rounded-lg">
-              <DollarSign className="h-6 w-6 text-green-600" />
+              <IndianRupee className="h-6 w-6 text-green-600" />
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Income</p>
-              <p className="text-2xl font-semibold text-gray-900">$12,450</p>
+              <p className="text-2xl font-semibold text-gray-900">{formatAmount(summary.totalIncome)}</p>
             </div>
           </div>
         </div>
@@ -31,7 +66,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-              <p className="text-2xl font-semibold text-gray-900">$8,320</p>
+              <p className="text-2xl font-semibold text-gray-900">{formatAmount(summary.totalExpenses)}</p>
             </div>
           </div>
         </div>
@@ -43,7 +78,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Net Flow</p>
-              <p className="text-2xl font-semibold text-gray-900">$4,130</p>
+              <p className="text-2xl font-semibold text-gray-900">{formatAmount(summary.netFlow)}</p>
             </div>
           </div>
         </div>
@@ -55,7 +90,7 @@ const Dashboard = () => {
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Transactions</p>
-              <p className="text-2xl font-semibold text-gray-900">247</p>
+              <p className="text-2xl font-semibold text-gray-900">{recentTransactions.length}</p>
             </div>
           </div>
         </div>
@@ -65,48 +100,45 @@ const Dashboard = () => {
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Transactions</h2>
           <div className="space-y-3">
-            {[
-              { description: 'Grocery Store', amount: -125.50, category: 'Food', date: '2024-01-15' },
-              { description: 'Salary', amount: 3500.00, category: 'Income', date: '2024-01-14' },
-              { description: 'Gas Station', amount: -45.00, category: 'Transport', date: '2024-01-13' },
-              { description: 'Restaurant', amount: -68.25, category: 'Food', date: '2024-01-12' },
-            ].map((transaction, index) => (
-              <div key={index} className="flex justify-between items-center py-2 border-b">
-                <div>
-                  <p className="font-medium text-gray-900">{transaction.description}</p>
-                  <p className="text-sm text-gray-500">{transaction.category} • {transaction.date}</p>
+            {recentTransactions.length > 0 ? (
+              recentTransactions.map((transaction) => (
+                <div key={transaction._id} className="flex justify-between items-center py-2 border-b">
+                  <div>
+                    <p className="font-medium text-gray-900">{transaction.description}</p>
+                    <p className="text-sm text-gray-500">{transaction.category} • {new Date(transaction.date).toLocaleDateString()}</p>
+                  </div>
+                  <p className={`font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                    {formatAmountWithSign(transaction.amount, transaction.type)}
+                  </p>
                 </div>
-                <p className={`font-semibold ${transaction.amount > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {transaction.amount > 0 ? '+' : ''}${Math.abs(transaction.amount).toFixed(2)}
-                </p>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-4">No transactions yet</p>
+            )}
           </div>
         </div>
 
         <div className="bg-white p-6 rounded-lg shadow">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Spending by Category</h2>
-          <div className="space-y-3">
-            {[
-              { category: 'Food', amount: 1250, percentage: 35 },
-              { category: 'Transport', amount: 450, percentage: 13 },
-              { category: 'Entertainment', amount: 320, percentage: 9 },
-              { category: 'Utilities', amount: 280, percentage: 8 },
-              { category: 'Other', amount: 1240, percentage: 35 },
-            ].map((item, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium text-gray-700">{item.category}</span>
-                  <span className="text-gray-900">${item.amount}</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full" 
-                    style={{ width: `${item.percentage}%` }}
-                  />
-                </div>
-              </div>
-            ))}
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h2>
+          <div className="space-y-4">
+            <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+              <span className="text-green-800 font-medium">Average Income</span>
+              <span className="text-green-900 font-bold">
+                {summary.totalIncome > 0 ? formatAmount(summary.totalIncome / 12) : formatAmount(0)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
+              <span className="text-red-800 font-medium">Average Expenses</span>
+              <span className="text-red-900 font-bold">
+                {summary.totalExpenses > 0 ? formatAmount(summary.totalExpenses / 12) : formatAmount(0)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+              <span className="text-blue-800 font-medium">Savings Rate</span>
+              <span className="text-blue-900 font-bold">
+                {summary.totalIncome > 0 ? Math.round((summary.netFlow / summary.totalIncome) * 100) : 0}%
+              </span>
+            </div>
           </div>
         </div>
       </div>
