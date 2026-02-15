@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
-import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Eye, Database, Play, ChevronLeft, ChevronRight } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Eye, Database, Play, ChevronLeft, ChevronRight, RotateCcw, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import API from '../api'
+import { csvImportStorage } from '../utils/storage'
 
 const Import = () => {
   const navigate = useNavigate()
@@ -14,6 +15,61 @@ const Import = () => {
   const [importResult, setImportResult] = useState(null)
   const [dryRunResult, setDryRunResult] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [hasSavedState, setHasSavedState] = useState(false)
+  const [loadingState, setLoadingState] = useState(true)
+
+  // Load saved state on component mount
+  useEffect(() => {
+    const loadSavedState = () => {
+      try {
+        const savedState = csvImportStorage.loadState()
+        if (savedState) {
+          setHasSavedState(true)
+          // Note: We can't restore the actual file, but we can restore other state
+          setPreview(savedState.preview)
+          setColumnMapping(savedState.columnMapping || {})
+          setImportStep(savedState.importStep || 1)
+          setImportResult(savedState.importResult)
+          setDryRunResult(savedState.dryRunResult)
+          setCurrentPage(savedState.currentPage || 1)
+        }
+      } catch (error) {
+        console.error('Error loading saved state:', error)
+      } finally {
+        setLoadingState(false)
+      }
+    }
+
+    loadSavedState()
+  }, [])
+
+  // Save state to localStorage whenever it changes
+  useEffect(() => {
+    if (!loadingState) {
+      csvImportStorage.saveState({
+        file,
+        preview,
+        columnMapping,
+        importStep,
+        importResult,
+        dryRunResult,
+        currentPage
+      })
+    }
+  }, [file, preview, columnMapping, importStep, importResult, dryRunResult, currentPage, loadingState])
+
+  // Clear saved state
+  const clearSavedState = () => {
+    csvImportStorage.clearState()
+    setHasSavedState(false)
+    setFile(null)
+    setPreview(null)
+    setColumnMapping({})
+    setImportStep(1)
+    setImportResult(null)
+    setDryRunResult(null)
+    setCurrentPage(1)
+  }
 
   const handleFileChange = async (e) => {
     const selectedFile = e.target.files[0]
@@ -210,16 +266,60 @@ const Import = () => {
 
   const handlePageChange = async (newPage) => {
     if (newPage < 1 || !preview?.pagination || newPage > preview.pagination.totalPages) return
-    
-    setCurrentPage(newPage)
-    await uploadAndPreview(file, newPage)
+  }
+
+  if (loadingState) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading import state...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Import Transactions</h1>
-        
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Import Transactions</h1>
+              <p className="text-gray-600">Import your transaction data from CSV files</p>
+            </div>
+            {hasSavedState && (
+              <button
+                onClick={clearSavedState}
+                className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Clear Saved State
+              </button>
+            )}
+          </div>
+
+          {hasSavedState && (
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <AlertCircle className="h-5 w-5 text-blue-600 mr-2" />
+                  <p className="text-sm text-blue-800">
+                    You have a previous import session saved. Upload the same CSV file to continue where you left off.
+                  </p>
+                </div>
+                <button
+                  onClick={clearSavedState}
+                  className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Progress Indicator */}
         <div className="flex items-center space-x-2">
           <div className={`flex items-center ${importStep >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>

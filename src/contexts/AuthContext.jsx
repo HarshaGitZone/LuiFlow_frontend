@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { api } from '../api'
+import { clearUserData } from '../utils/storage'
 
 const AuthContext = createContext()
 const TOKEN_STORAGE_KEY = 'token'
@@ -100,6 +101,8 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem(TOKEN_STORAGE_KEY)
     persistUser(null)
+    // Clear all user-related data from storage
+    clearUserData()
   }
 
   const updateProfile = async (userData) => {

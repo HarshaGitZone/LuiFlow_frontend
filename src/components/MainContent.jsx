@@ -18,7 +18,7 @@ const MainContent = ({ children }) => {
   const leftPadding = isCollapsed ? 'pl-24' : 'pl-72'
 
   return (
-    <main className={`flex-1 pt-4 pr-8 pb-8 ${leftPadding} bg-gray-50 overflow-y-auto transition-all duration-300`}>
+    <main className={`flex-1 pt-4 pr-8 pb-8 ${leftPadding} bg-gray-50 dark:bg-slate-950 overflow-y-auto transition-all duration-300`}>
       {children}
     </main>
   )

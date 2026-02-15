@@ -37,21 +37,21 @@ const Sidebar = () => {
   }
 
   return (
-    <div className={`${isCollapsed ? 'w-20' : 'w-64'} bg-white shadow-lg transition-all duration-300 ease-in-out fixed left-0 top-16 z-30 h-screen`}>
+    <div className={`${isCollapsed ? 'w-20' : 'w-64'} bg-white dark:bg-slate-900 shadow-lg transition-all duration-300 ease-in-out fixed left-0 top-16 z-30 h-screen border-r border-transparent dark:border-slate-700`}>
       <button
         onClick={handleCollapseToggle}
-        className="absolute -right-3 top-8 bg-white border border-gray-300 rounded-full p-2 shadow-md hover:shadow-lg transition-shadow duration-200 z-10"
+        className="absolute -right-3 top-8 bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 rounded-full p-2 shadow-md hover:shadow-lg transition-shadow duration-200 z-10"
       >
         {isCollapsed ? (
-          <Menu className="h-4 w-4 text-gray-600 hover:text-gray-900" />
+          <Menu className="h-4 w-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" />
         ) : (
-          <X className="h-4 w-4 text-gray-600 hover:text-gray-900" />
+          <X className="h-4 w-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" />
         )}
       </button>
       
       {/* Logo */}
       <div className={`p-6 ${isCollapsed ? 'text-center' : ''}`}>
-        <h1 className={`${isCollapsed ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 transition-all duration-300`}>
+        <h1 className={`${isCollapsed ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 dark:text-gray-100 transition-all duration-300`}>
           {isCollapsed ? 'LF' : 'LuiFlow'}
         </h1>
       </div>
@@ -66,8 +66,8 @@ const Sidebar = () => {
               to={item.href}
               className={`flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'px-6 py-3'} text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? 'bg-blue-50 text-blue-700 border-r-4 border-blue-700'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  ? 'bg-blue-50 dark:bg-slate-800 text-blue-700 dark:text-blue-300 border-r-4 border-blue-700 dark:border-blue-400'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
               title={isCollapsed ? item.name : ''}
             >
