@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { TrendingUp, TrendingDown, DollarSign, CreditCard, ArrowUpRight, ArrowDownRight, IndianRupee, Receipt } from 'lucide-react'
-import axios from 'axios'
+import { api } from '../api'
 import API from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
 import WelcomeHeader from '../components/WelcomeHeader'
@@ -14,12 +14,10 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Fetch summary
-        const summaryResponse = await axios.get(API.TRANSACTIONS_SUMMARY)
+        const summaryResponse = await api.get(API.TRANSACTIONS_SUMMARY)
         setSummary(summaryResponse.data)
 
-        // Fetch recent transactions
-        const transactionsResponse = await axios.get(`${API.TRANSACTIONS}?limit=5`)
+        const transactionsResponse = await api.get(`${API.TRANSACTIONS}?limit=5`)
         setRecentTransactions(transactionsResponse.data.transactions)
       } catch (error) {
         console.error('Error fetching dashboard data:', error)

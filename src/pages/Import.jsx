@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Eye, Database, Play, ChevronLeft, ChevronRight } from 'lucide-react'
-import axios from 'axios'
+import { api } from '../api'
 import API from '../api'
 
 const Import = () => {
@@ -30,7 +30,7 @@ const Import = () => {
     
     try {
       setUploading(true)
-      const response = await axios.post(API.CSV_PREVIEW, formData, {
+      const response = await api.post(API.CSV_PREVIEW, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -102,7 +102,7 @@ const Import = () => {
       
       // Test if backend is reachable first
       try {
-        const healthResponse = await axios.get(API.HEALTH)
+        const healthResponse = await api.get(API.HEALTH)
         console.log('Backend health check:', healthResponse.data)
       } catch (healthError) {
         console.error('Backend health check failed:', healthError)
@@ -110,7 +110,7 @@ const Import = () => {
         return
       }
       
-      const response = await axios.post(API.CSV_IMPORT, formData, {
+      const response = await api.post(API.CSV_IMPORT, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
@@ -172,7 +172,7 @@ const Import = () => {
     try {
       setUploading(true)
       console.log('Sending dry run request...')
-      const response = await axios.post(API.CSV_DRY_RUN, formData, {
+      const response = await api.post(API.CSV_DRY_RUN, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
