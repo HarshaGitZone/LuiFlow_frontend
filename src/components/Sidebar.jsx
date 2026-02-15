@@ -7,11 +7,12 @@ import {
   PiggyBank, 
   TrendingUp, 
   Settings,
+  User,
   Menu,
   X
 } from 'lucide-react'
 
-const Sidebar = ({ children }) => {
+const Sidebar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const location = useLocation()
 
@@ -21,11 +22,12 @@ const Sidebar = ({ children }) => {
     { name: 'Import', href: '/import', icon: Upload },
     { name: 'Budgets', href: '/budgets', icon: PiggyBank },
     { name: 'Analytics', href: '/analytics', icon: TrendingUp },
+    { name: 'Profile', href: '/profile', icon: User },
     { name: 'Settings', href: '/settings', icon: Settings },
   ]
 
   return (
-    <div className={`${isCollapsed ? 'w-20' : 'w-64'} bg-white shadow-lg transition-all duration-300 ease-in-out relative h-screen`}>
+    <div className={`${isCollapsed ? 'w-20' : 'w-64'} bg-white shadow-lg transition-all duration-300 ease-in-out relative h-screen fixed left-0 top-16 z-30`}>
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="absolute -right-3 top-8 bg-white border border-gray-300 rounded-full p-2 shadow-md hover:shadow-lg transition-shadow duration-200 z-10"
@@ -39,7 +41,7 @@ const Sidebar = ({ children }) => {
       
       <div className={`p-6 ${isCollapsed ? 'text-center' : ''}`}>
         <h1 className={`${isCollapsed ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 transition-all duration-300`}>
-          {isCollapsed ? 'FT' : 'Finance Tracker'}
+          {isCollapsed ? 'LF' : 'LuiFlow'}
         </h1>
       </div>
       
