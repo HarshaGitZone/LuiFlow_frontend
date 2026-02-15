@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Eye, Database, Play } from 'lucide-react'
+import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Eye, Database, Play, ChevronLeft, ChevronRight } from 'lucide-react'
 import axios from 'axios'
 
 const Import = () => {
@@ -10,6 +10,7 @@ const Import = () => {
   const [importStep, setImportStep] = useState(1) // 1: upload, 2: mapping, 3: dryrun, 4: confirmation
   const [importResult, setImportResult] = useState(null)
   const [dryRunResult, setDryRunResult] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const handleFileChange = async (e) => {
     const selectedFile = e.target.files[0]
@@ -20,9 +21,11 @@ const Import = () => {
     }
   }
 
-  const uploadAndPreview = async (csvFile) => {
+  const uploadAndPreview = async (csvFile, page = 1) => {
     const formData = new FormData()
     formData.append('file', csvFile)
+    formData.append('page', page.toString())
+    formData.append('limit', '20')
     
     try {
       setUploading(true)
@@ -32,31 +35,41 @@ const Import = () => {
         }
       })
       
-      setPreview(response.data)
-      
-      // Initialize column mapping with smart defaults
-      const mapping = {}
-      const headers = response.data.headers
-      
-      // Smart mapping based on common column names
-      headers.forEach(header => {
-        const lowerHeader = header.toLowerCase()
+      if (page === 1) {
+        // Initialize preview on first page load
+        setPreview(response.data)
         
-        if (lowerHeader.includes('date') || lowerHeader.includes('time')) {
-          mapping.date = header
-        } else if (lowerHeader.includes('amount') || lowerHeader.includes('value') || lowerHeader.includes('sum')) {
-          mapping.amount = header
-        } else if (lowerHeader.includes('type') || lowerHeader.includes('transaction type')) {
-          mapping.type = header
-        } else if (lowerHeader.includes('category') || lowerHeader.includes('class')) {
-          mapping.category = header
-        } else if (lowerHeader.includes('description') || lowerHeader.includes('memo') || lowerHeader.includes('notes')) {
-          mapping.description = header
-        }
-      })
-      
-      setColumnMapping(mapping)
-      setImportStep(2)
+        // Initialize column mapping with smart defaults
+        const mapping = {}
+        const headers = response.data.headers
+        
+        // Smart mapping based on common column names
+        headers.forEach(header => {
+          const lowerHeader = header.toLowerCase()
+          
+          if (lowerHeader.includes('date') || lowerHeader.includes('time')) {
+            mapping.date = header
+          } else if (lowerHeader.includes('amount') || lowerHeader.includes('value') || lowerHeader.includes('sum')) {
+            mapping.amount = header
+          } else if (lowerHeader.includes('type') || lowerHeader.includes('transaction type')) {
+            mapping.type = header
+          } else if (lowerHeader.includes('category') || lowerHeader.includes('class')) {
+            mapping.category = header
+          } else if (lowerHeader.includes('description') || lowerHeader.includes('memo') || lowerHeader.includes('notes')) {
+            mapping.description = header
+          }
+        })
+        
+        setColumnMapping(mapping)
+        setImportStep(2)
+      } else {
+        // Update preview data for pagination
+        setPreview(prev => ({
+          ...prev,
+          data: response.data.data,
+          pagination: response.data.pagination
+        }))
+      }
     } catch (error) {
       console.error('Preview error:', error)
       alert('Failed to preview CSV file')
@@ -134,7 +147,15 @@ const Import = () => {
     setColumnMapping({})
     setImportResult(null)
     setDryRunResult(null)
+    setCurrentPage(1)
     setImportStep(1)
+  }
+
+  const handlePageChange = async (newPage) => {
+    if (newPage < 1 || !preview?.pagination || newPage > preview.pagination.totalPages) return
+    
+    setCurrentPage(newPage)
+    await uploadAndPreview(file, newPage)
   }
 
   return (
@@ -340,7 +361,15 @@ const Import = () => {
 
           {/* Preview */}
           <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Preview (First 20 rows)</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-gray-900">Preview</h2>
+              {preview?.pagination && (
+                <div className="text-sm text-gray-600">
+                  Showing {((preview.pagination.page - 1) * preview.pagination.limit) + 1} to {Math.min(preview.pagination.page * preview.pagination.limit, preview.pagination.totalRows)} of {preview.pagination.totalRows} rows
+                </div>
+              )}
+            </div>
+            
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -353,7 +382,7 @@ const Import = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {preview.data.slice(0, 10).map((row, rowIndex) => (
+                  {preview.data.map((row, rowIndex) => (
                     <tr key={rowIndex} className="hover:bg-gray-50">
                       {preview.headers.map((header, colIndex) => (
                         <td key={colIndex} className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">
@@ -365,11 +394,62 @@ const Import = () => {
                 </tbody>
               </table>
             </div>
-            
-            {preview.data.length > 10 && (
-              <p className="text-xs text-gray-500 mt-2 text-center">
-                Showing 10 of {preview.totalRows} rows
-              </p>
+
+            {/* Pagination Controls */}
+            {preview?.pagination && preview.pagination.totalPages > 1 && (
+              <div className="flex items-center justify-between mt-4 px-2">
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={!preview.pagination.hasPrevPage || uploading}
+                    className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  
+                  <div className="flex items-center space-x-1">
+                    {Array.from({ length: Math.min(5, preview.pagination.totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (preview.pagination.totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= preview.pagination.totalPages - 2) {
+                        pageNum = preview.pagination.totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => handlePageChange(pageNum)}
+                          disabled={uploading}
+                          className={`px-3 py-1 rounded-lg text-sm font-medium ${
+                            currentPage === pageNum
+                              ? 'bg-blue-600 text-white'
+                              : 'border border-gray-300 hover:bg-gray-50'
+                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={!preview.pagination.hasNextPage || uploading}
+                    className="p-2 rounded-lg border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="text-sm text-gray-600">
+                  Page {currentPage} of {preview.pagination.totalPages}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -410,7 +490,7 @@ const Import = () => {
             {dryRunResult.validation.validTransactions.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-sm font-medium text-gray-900 mb-2">Preview of transactions that will be imported:</h3>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-h-60 overflow-y-auto">
                   <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-green-200">
                       <thead className="bg-green-100">
@@ -440,24 +520,26 @@ const Import = () => {
             )}
 
             {/* Errors */}
-            {dryRunResult.validation.errors.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-900 mb-2">Errors that will prevent import:</h3>
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="mb-6">
+              <h3 className="text-sm font-medium text-gray-900 mb-2">Errors that will prevent import:</h3>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 max-h-60 overflow-y-auto">
+                {dryRunResult.validation.errors.filter(e => !e.isDuplicate).length > 0 ? (
                   <ul className="text-sm text-red-700 space-y-1">
-                    {dryRunResult.validation.errors.map((error, index) => (
+                    {dryRunResult.validation.errors.filter(e => !e.isDuplicate).map((error, index) => (
                       <li key={index}>Row {error.row}: {error.error}</li>
                     ))}
                   </ul>
-                </div>
+                ) : (
+                  <p className="text-sm text-red-700">No errors to prevent import.</p>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Duplicates */}
             {dryRunResult.validation.duplicates.length > 0 && (
               <div className="mb-6">
                 <h3 className="text-sm font-medium text-gray-900 mb-2">Duplicate transactions that will be skipped:</h3>
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 max-h-60 overflow-y-auto">
                   <ul className="text-sm text-yellow-700 space-y-1">
                     {dryRunResult.validation.duplicates.map((duplicate, index) => (
                       <li key={index}>Row {duplicate.row}: Duplicate transaction</li>
