@@ -44,6 +44,7 @@ export const API = {
   CSV_PREVIEW: `${API_BASE_URL}/api/csv/preview`,
   CSV_IMPORT: `${API_BASE_URL}/api/csv/import`,
   CSV_DRY_RUN: `${API_BASE_URL}/api/csv/dry-run`,
+  CSV_HISTORY: `${API_BASE_URL}/api/csv/history`,
   HEALTH: `${API_BASE_URL}/api/health`
 };
 

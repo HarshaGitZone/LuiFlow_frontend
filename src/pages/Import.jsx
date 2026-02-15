@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Eye, Database, Play, ChevronLeft, ChevronRight, RotateCcw, X } from 'lucide-react'
+import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Eye, Database, Play, ChevronLeft, ChevronRight, RotateCcw, X, History, Clock } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import API from '../api'
@@ -16,7 +16,11 @@ const Import = () => {
   const [dryRunResult, setDryRunResult] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [hasSavedState, setHasSavedState] = useState(false)
+
   const [loadingState, setLoadingState] = useState(true)
+  const [showHistory, setShowHistory] = useState(false)
+  const [historyData, setHistoryData] = useState([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
 
   // Load saved state on component mount
   useEffect(() => {
@@ -58,6 +62,24 @@ const Import = () => {
     }
   }, [file, preview, columnMapping, importStep, importResult, dryRunResult, currentPage, loadingState])
 
+  const fetchHistory = async () => {
+    try {
+      setLoadingHistory(true)
+      const response = await api.get(API.CSV_HISTORY)
+      setHistoryData(response.data)
+    } catch (error) {
+      console.error('Failed to fetch history:', error)
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+
+  useEffect(() => {
+    if (showHistory) {
+      fetchHistory()
+    }
+  }, [showHistory])
+
   // Clear saved state
   const clearSavedState = () => {
     csvImportStorage.clearState()
@@ -74,7 +96,7 @@ const Import = () => {
   const handleFileChange = async (e) => {
     const selectedFile = e.target.files[0]
     setFile(selectedFile)
-    
+
     if (selectedFile) {
       await uploadAndPreview(selectedFile)
     }
@@ -85,7 +107,7 @@ const Import = () => {
     formData.append('file', csvFile)
     formData.append('page', page.toString())
     formData.append('limit', '20')
-    
+
     try {
       setUploading(true)
       const response = await api.post(API.CSV_PREVIEW, formData, {
@@ -93,19 +115,19 @@ const Import = () => {
           'Content-Type': 'multipart/form-data'
         }
       })
-      
+
       if (page === 1) {
         // Initialize preview on first page load
         setPreview(response.data)
-        
+
         // Initialize column mapping with smart defaults
         const mapping = {}
         const headers = response.data.headers
-        
+
         // Smart mapping based on common column names
         headers.forEach(header => {
           const lowerHeader = header.toLowerCase()
-          
+
           if (lowerHeader.includes('date') || lowerHeader.includes('time')) {
             mapping.date = header
           } else if (lowerHeader.includes('amount') || lowerHeader.includes('value') || lowerHeader.includes('sum')) {
@@ -118,7 +140,7 @@ const Import = () => {
             mapping.description = header
           }
         })
-        
+
         setColumnMapping(mapping)
         setImportStep(2)
       } else {
@@ -146,18 +168,18 @@ const Import = () => {
 
   const handleImport = async () => {
     if (!file) return
-    
+
     const formData = new FormData()
     formData.append('file', file)
     formData.append('columnMapping', JSON.stringify(columnMapping))
-    
+
     try {
       setUploading(true)
       console.log('Starting import with file:', file.name)
       console.log('File size:', file.size, 'bytes')
       console.log('Column mapping:', columnMapping)
       console.log('API URL:', API.CSV_IMPORT)
-      
+
       // Test if backend is reachable first
       try {
         const healthResponse = await api.get(API.HEALTH)
@@ -167,35 +189,42 @@ const Import = () => {
         alert('Backend is not reachable. Please check if the server is running.')
         return
       }
-      
+
       const response = await api.post(API.CSV_IMPORT, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         },
-        timeout: 60000 // 60 second timeout for large files
+        timeout: 120000 // 120 second timeout for large files
       })
-      
+
       console.log('Import response received:', response.data)
       console.log('Response status:', response.status)
       console.log('Response headers:', response.headers)
-      
+
       if (response.data && response.data.success) {
         console.log('Import successful, setting result and moving to step 4')
         setImportResult(response.data)
         setImportStep(4)
         console.log('Import step set to 4, importResult:', response.data)
-        
+
         // Emit event to notify other components of data change
         window.dispatchEvent(new CustomEvent('transaction-updated'))
-        
+
         // Show success message and navigate to transactions after a delay
         setTimeout(() => {
-          alert(`Import completed successfully! ${response.data.summary.insertedRows} transactions imported.`)
+          const { insertedRows, duplicateRows } = response.data.summary;
+          alert(`Import completed! ${insertedRows} imported, ${duplicateRows} duplicates skipped.`)
           navigate('/transactions')
         }, 2000)
       } else {
         console.error('Import response indicates failure:', response.data)
-        alert(`Import failed: ${response.data?.error || 'Unknown error'}`)
+        let errorDetails = '';
+        if (response.data.errors && response.data.errors.length > 0) {
+          errorDetails = `\nFirst error: ${response.data.errors[0].error} (Row ${response.data.errors[0].row})`;
+        } else if (response.data.debug) {
+          errorDetails = `\nDebug: Valid Rows: ${response.data.debug.resultsLength}, Processed: ${response.data.debug.processedRows}, Inserted: ${response.data.debug.insertedCount}`;
+        }
+        alert(`Import failed: ${response.data?.error || 'Unknown error'}${errorDetails}`)
       }
     } catch (error) {
       console.error('Import error:', error)
@@ -203,7 +232,7 @@ const Import = () => {
       console.error('Error status:', error.response?.status)
       console.error('Error headers:', error.response?.headers)
       console.error('Full error object:', error)
-      
+
       let errorMessage = 'Failed to import CSV file'
       if (error.response?.data?.error) {
         errorMessage = error.response.data.error
@@ -216,7 +245,7 @@ const Import = () => {
       } else if (error.code === 'ECONNRESET') {
         errorMessage = 'Connection was reset. The server may have timed out.'
       }
-      
+
       alert(`Import error: ${errorMessage}`)
     } finally {
       setUploading(false)
@@ -225,17 +254,17 @@ const Import = () => {
 
   const handleDryRun = async () => {
     if (!file) return
-    
+
     console.log('API BASE URL:', import.meta.env.VITE_API_URL);
     console.log('API CSV_DRY_RUN:', API.CSV_DRY_RUN);
-    
+
     console.log('Starting dry run with file:', file.name)
     console.log('Column mapping:', columnMapping)
-    
+
     const formData = new FormData()
     formData.append('file', file)
     formData.append('columnMapping', JSON.stringify(columnMapping))
-    
+
     try {
       setUploading(true)
       console.log('Sending dry run request...')
@@ -244,7 +273,7 @@ const Import = () => {
           'Content-Type': 'multipart/form-data'
         }
       })
-      
+
       console.log('Dry run response:', response.data)
       setDryRunResult(response.data)
       setImportStep(3)
@@ -292,15 +321,28 @@ const Import = () => {
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Import Transactions</h1>
               <p className="text-gray-600">Import your transaction data from CSV files</p>
             </div>
-            {hasSavedState && (
+            <div className="flex gap-3">
               <button
-                onClick={clearSavedState}
-                className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                onClick={() => setShowHistory(!showHistory)}
+                className={`flex items-center px-4 py-2 rounded-lg transition-colors ${showHistory
+                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                  }`}
               >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Clear Saved State
+                <History className="h-4 w-4 mr-2" />
+                {showHistory ? 'History' : 'History'}
               </button>
-            )}
+
+              {hasSavedState && (
+                <button
+                  onClick={clearSavedState}
+                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  <RotateCcw className="h-4 w-4 mr-2" />
+                  Clear Saved State
+                </button>
+              )}
+            </div>
           </div>
 
           {hasSavedState && (
@@ -323,44 +365,133 @@ const Import = () => {
           )}
         </div>
 
-        {/* Progress Indicator */}
-        <div className="flex items-center space-x-2">
-          <div className={`flex items-center ${importStep >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
-              1
+        {showHistory && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Import History</h2>
+                <p className="text-sm text-gray-500">Track your past CSV imports</p>
+              </div>
+              <button
+                onClick={fetchHistory}
+                className="p-2 text-gray-500 hover:text-blue-600 transition-colors"
+                title="Refresh"
+              >
+                <RotateCcw className={`h-4 w-4 ${loadingHistory ? 'animate-spin' : ''}`} />
+              </button>
             </div>
-            <span className="ml-2 font-medium">Upload</span>
-          </div>
-          <ArrowRight className="w-4 h-4 text-gray-400" />
-          <div className={`flex items-center ${importStep >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
-              2
+
+            {loadingHistory ? (
+              <div className="p-12 text-center text-gray-500">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                Loading history...
+              </div>
+            ) : historyData.length === 0 ? (
+              <div className="p-12 text-center text-gray-500">
+                <History className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No import history found.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Rows</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Imported</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Errors</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {historyData.map((item) => (
+                      <tr key={item._id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <div className="flex items-center">
+                            <Clock className="h-4 w-4 text-gray-400 mr-2" />
+                            {new Date(item.importDate).toLocaleString()}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {item.fileName}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${item.status === 'success' ? 'bg-green-100 text-green-800' :
+                            item.status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
+                              'bg-red-100 text-red-800'
+                            }`}>
+                            {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
+                          {item.summary?.totalRows || 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-medium">
+                          {item.summary?.insertedRows || 0}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600 font-medium">
+                          {item.summary?.errors || 0}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <div className="p-4 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setShowHistory(false)}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
             </div>
-            <span className="ml-2 font-medium">Map Columns</span>
           </div>
-          <ArrowRight className="w-4 h-4 text-gray-400" />
-          <div className={`flex items-center ${importStep >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
-              3
+        )}
+
+        {!showHistory && (
+          <>
+            {/* Progress Indicator */}
+            <div className="flex items-center space-x-2">
+              <div className={`flex items-center ${importStep >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  1
+                </div>
+                <span className="ml-2 font-medium">Upload</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+              <div className={`flex items-center ${importStep >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  2
+                </div>
+                <span className="ml-2 font-medium">Map Columns</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+              <div className={`flex items-center ${importStep >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  3
+                </div>
+                <span className="ml-2 font-medium">Validate</span>
+              </div>
+              <ArrowRight className="w-4 h-4 text-gray-400" />
+              <div className={`flex items-center ${importStep >= 4 ? 'text-blue-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 4 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
+                  4
+                </div>
+                <span className="ml-2 font-medium">Import</span>
+              </div>
             </div>
-            <span className="ml-2 font-medium">Validate</span>
-          </div>
-          <ArrowRight className="w-4 h-4 text-gray-400" />
-          <div className={`flex items-center ${importStep >= 4 ? 'text-blue-600' : 'text-gray-400'}`}>
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 4 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>
-              4
-            </div>
-            <span className="ml-2 font-medium">Import</span>
-          </div>
-        </div>
+          </>
+        )}
       </div>
 
       {/* Step 1: Upload */}
-      {importStep === 1 && (
+      {!showHistory && importStep === 1 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload CSV File</h2>
-            
+
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
               <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <label className="cursor-pointer">
@@ -401,7 +532,7 @@ const Import = () => {
       )}
 
       {/* Step 2: Column Mapping */}
-      {importStep === 2 && preview && (
+      {!showHistory && importStep === 2 && preview && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Column Mapping */}
           <div className="bg-white p-6 rounded-lg shadow">
@@ -409,7 +540,7 @@ const Import = () => {
             <p className="text-sm text-gray-600 mb-6">
               Match your CSV columns to the transaction fields below.
             </p>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -529,7 +660,7 @@ const Import = () => {
                 </div>
               )}
             </div>
-            
+
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
@@ -566,7 +697,7 @@ const Import = () => {
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </button>
-                  
+
                   <div className="flex items-center space-x-1">
                     {Array.from({ length: Math.min(5, preview.pagination.totalPages) }, (_, i) => {
                       let pageNum;
@@ -579,24 +710,23 @@ const Import = () => {
                       } else {
                         pageNum = currentPage - 2 + i;
                       }
-                      
+
                       return (
                         <button
                           key={pageNum}
                           onClick={() => handlePageChange(pageNum)}
                           disabled={uploading}
-                          className={`px-3 py-1 rounded-lg text-sm font-medium ${
-                            currentPage === pageNum
-                              ? 'bg-blue-600 text-white'
-                              : 'border border-gray-300 hover:bg-gray-50'
-                          } disabled:opacity-50 disabled:cursor-not-allowed`}
+                          className={`px-3 py-1 rounded-lg text-sm font-medium ${currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'border border-gray-300 hover:bg-gray-50'
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           {pageNum}
                         </button>
                       );
                     })}
                   </div>
-                  
+
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={!preview.pagination.hasNextPage || uploading}
@@ -616,14 +746,14 @@ const Import = () => {
       )}
 
       {/* Step 3: Dry Run Results */}
-      {importStep === 3 && dryRunResult && (
+      {!showHistory && importStep === 3 && dryRunResult && (
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Validation Results</h2>
             <p className="text-sm text-gray-600 mb-6">
               This is a dry run validation. No data has been imported yet. Review the results below and decide whether to proceed with the import.
             </p>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               <div className="text-center p-4 bg-blue-50 rounded-lg">
                 <p className="text-2xl font-bold text-blue-900">{dryRunResult.summary.totalRows}</p>
@@ -740,10 +870,10 @@ const Import = () => {
       )}
 
       {/* Step 4: Import Results */}
-      {importStep === 4 && importResult && (
+      {!showHistory && importStep === 4 && importResult && (
         <div className="bg-white p-6 rounded-lg shadow">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Import Complete!</h2>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <p className="text-2xl font-bold text-blue-900">{importResult.summary.totalRows}</p>

@@ -11,6 +11,7 @@ import DebtManager from './pages/DebtManager'
 import Import from './pages/Import'
 import Budgets from './pages/Budgets'
 import Analytics from './pages/Analytics'
+import Reports from './pages/Reports'
 import SalaryPlanner from './pages/SalaryPlanner'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
@@ -27,6 +28,7 @@ function App() {
         <Route path="/debt-manager" element={<Layout><DebtManager /></Layout>} />
         <Route path="/import" element={<Layout><Import /></Layout>} />
         <Route path="/budgets" element={<Layout><Budgets /></Layout>} />
+        <Route path="/reports" element={<Layout><Reports /></Layout>} />
         <Route path="/analytics" element={<Layout><Analytics /></Layout>} />
         <Route path="/salary-planner" element={<Layout><SalaryPlanner /></Layout>} />
         <Route path="/profile" element={<Layout><Profile /></Layout>} />
