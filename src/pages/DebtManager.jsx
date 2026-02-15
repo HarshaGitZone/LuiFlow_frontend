@@ -35,6 +35,9 @@ const DebtManager = () => {
     paymentMode: 'cash',
     notes: ''
   })
+  const [globalProjectionTime, setGlobalProjectionTime] = useState('')
+  const [globalProjectionUnit, setGlobalProjectionUnit] = useState('years')
+  const [globalProjection, setGlobalProjection] = useState(null)
 
   useEffect(() => {
     fetchDebts()
@@ -89,6 +92,9 @@ const DebtManager = () => {
       setShowModal(false)
       setEditingDebt(null)
       resetForm()
+      
+      // Dispatch event to refresh calendar and transactions
+      window.dispatchEvent(new CustomEvent('transaction-updated'))
     } catch (error) {
       console.error('Error saving debt:', error?.response?.data?.error || error.message || error)
     }
@@ -112,6 +118,9 @@ const DebtManager = () => {
       setShowPaymentModal(false)
       setSelectedDebt(null)
       resetPaymentForm()
+      
+      // Dispatch event to refresh calendar and transactions
+      window.dispatchEvent(new CustomEvent('transaction-updated'))
     } catch (error) {
       console.error('Error adding payment:', error?.response?.data?.error || error.message || error)
     }
@@ -139,6 +148,9 @@ const DebtManager = () => {
       try {
         await api.delete(`/api/debts/${debtId}`)
         await fetchDebts()
+        
+        // Dispatch event to refresh calendar and transactions
+        window.dispatchEvent(new CustomEvent('transaction-updated'))
       } catch (error) {
         console.error('Error deleting debt:', error)
       }
@@ -150,6 +162,9 @@ const DebtManager = () => {
       try {
         await api.patch(`/api/debts/${debtId}/close`)
         await fetchDebts()
+        
+        // Dispatch event to refresh calendar and transactions
+        window.dispatchEvent(new CustomEvent('transaction-updated'))
       } catch (error) {
         console.error('Error closing debt:', error)
       }
@@ -201,6 +216,64 @@ const DebtManager = () => {
     })
   }
 
+  const calculateGlobalProjection = () => {
+    if (!globalProjectionTime || globalProjectionTime <= 0) {
+      setGlobalProjection(null)
+      return
+    }
+
+    const timeInYears = globalProjectionUnit === 'years' ? parseFloat(globalProjectionTime) : parseFloat(globalProjectionTime) / 12
+    const activeDebts = debts.filter(debt => debt.status === 'active')
+    
+    let totalCurrentDebt = 0
+    let totalProjectedInterest = 0
+
+    activeDebts.forEach(debt => {
+      const currentBalance = debt.outstandingBalance
+      totalCurrentDebt += currentBalance
+
+      if (debt.interestType === 'none') {
+        // No interest
+      } else if (debt.interestType === 'simple') {
+        // Simple Interest: P × R × T
+        totalProjectedInterest += currentBalance * (debt.interestRate / 100) * timeInYears
+      } else if (debt.interestType === 'compound') {
+        // Compound Interest: P × (1 + r/n)^(n×t) - P
+        const ratePerPeriod = debt.interestRate / 100
+        let periodsPerYear = 1
+        
+        switch (debt.compoundFrequency) {
+          case 'monthly':
+            periodsPerYear = 12
+            break
+          case 'quarterly':
+            periodsPerYear = 4
+            break
+          case 'yearly':
+            periodsPerYear = 1
+            break
+          default:
+            periodsPerYear = 1
+        }
+        
+        const totalPeriods = periodsPerYear * timeInYears
+        const ratePerPeriodDecimal = ratePerPeriod / periodsPerYear
+        
+        totalProjectedInterest += currentBalance * Math.pow(1 + ratePerPeriodDecimal, totalPeriods) - currentBalance
+      }
+    })
+
+    const futureTotal = totalCurrentDebt + totalProjectedInterest
+
+    setGlobalProjection({
+      timePeriod: `${globalProjectionTime} ${globalProjectionUnit}`,
+      currentTotal: totalCurrentDebt,
+      projectedInterest: totalProjectedInterest,
+      futureTotal: futureTotal,
+      activeDebtsCount: activeDebts.length
+    })
+  }
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -249,8 +322,8 @@ const DebtManager = () => {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+        <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Outstanding</p>
@@ -260,7 +333,7 @@ const DebtManager = () => {
             </div>
           </div>
           
-          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Interest Accrued</p>
@@ -270,7 +343,7 @@ const DebtManager = () => {
             </div>
           </div>
           
-          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Total Paid</p>
@@ -280,7 +353,7 @@ const DebtManager = () => {
             </div>
           </div>
           
-          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-4 sm:p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Active Debts</p>
@@ -293,7 +366,7 @@ const DebtManager = () => {
 
         {/* Debt List */}
         <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700">
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Debt List</h2>
             
             {debts.length === 0 ? (
@@ -314,7 +387,7 @@ const DebtManager = () => {
             ) : (
               <div className="space-y-4">
                 {debts.map((debt) => (
-                  <div key={debt._id} className="border border-gray-200 dark:border-slate-700 rounded-lg p-4">
+                  <div key={debt._id} className="border border-gray-200 dark:border-slate-700 rounded-lg p-3 sm:p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <div className="flex items-center space-x-3 mb-2">
@@ -325,7 +398,7 @@ const DebtManager = () => {
                           </span>
                         </div>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-sm">
                           <div>
                             <p className="text-gray-500 dark:text-gray-400">Principal</p>
                             <p className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(debt.principalAmount)}</p>
@@ -335,8 +408,14 @@ const DebtManager = () => {
                             <p className="font-medium text-red-600 dark:text-red-400">{formatCurrency(debt.outstandingBalance)}</p>
                           </div>
                           <div>
-                            <p className="text-gray-500 dark:text-gray-400">Interest</p>
-                            <p className="font-medium text-orange-600 dark:text-orange-400">{formatCurrency(debt.interestAccrued)}</p>
+                            <p className="text-gray-500 dark:text-gray-400">Total Paid</p>
+                            <p className="font-medium text-green-600 dark:text-green-400">{formatCurrency(debt.totalPaid || 0)}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500 dark:text-gray-400">Interest Rate</p>
+                            <p className="font-medium text-blue-600 dark:text-blue-400">
+                              {debt.interestType === 'none' ? 'No Interest' : `${debt.interestRate}%`}
+                            </p>
                           </div>
                           <div>
                             <p className="text-gray-500 dark:text-gray-400">Start Date</p>
@@ -345,44 +424,44 @@ const DebtManager = () => {
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-2 ml-4">
+                      <div className="flex flex-wrap items-center gap-2 mt-3 sm:mt-0 sm:ml-4">
                         <button
                           onClick={() => handleViewDetail(debt)}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                          title="View Details"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg transition-colors text-sm"
                         >
-                          <Eye className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                          <Eye className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Details</span>
                         </button>
                         <button
                           onClick={() => handleAddPayment(debt)}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                          title="Add Payment"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg transition-colors text-sm"
                           disabled={debt.status === 'closed'}
                         >
-                          <DollarSign className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                          <DollarSign className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Pay</span>
                         </button>
                         <button
                           onClick={() => handleEdit(debt)}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                          title="Edit"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-gray-50 dark:bg-gray-900/20 hover:bg-gray-100 dark:hover:bg-gray-900/30 text-gray-600 dark:text-gray-400 rounded-lg transition-colors text-sm"
                         >
-                          <Edit2 className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                          <Edit2 className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Edit</span>
                         </button>
                         {debt.status === 'active' && (
                           <button
                             onClick={() => handleCloseDebt(debt._id)}
-                            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                            title="Close Debt"
+                            className="flex items-center gap-1 px-3 py-1.5 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg transition-colors text-sm"
                           >
-                            <X className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                            <X className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Close</span>
                           </button>
                         )}
                         <button
                           onClick={() => handleDelete(debt._id)}
-                          className="p-2 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg transition-colors"
-                          title="Delete"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg transition-colors text-sm"
                         >
-                          <Trash2 className="h-4 w-4 text-red-600 dark:text-red-400" />
+                          <Trash2 className="h-3.5 w-3.5" />
+                          <span className="hidden sm:inline">Delete</span>
                         </button>
                       </div>
                     </div>
@@ -392,6 +471,98 @@ const DebtManager = () => {
             )}
           </div>
         </div>
+
+        {/* Global Predictor Card */}
+        {debts.length > 0 && (
+          <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 mb-8">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center mb-4">
+                <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400 mr-2" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Global Debt Projection</h3>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Projection Calculator */}
+                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Calculate Future Impact</h4>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Time Period
+                      </label>
+                      <input
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        value={globalProjectionTime}
+                        onChange={(e) => setGlobalProjectionTime(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                        placeholder="Enter time"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Time Unit
+                      </label>
+                      <select
+                        value={globalProjectionUnit}
+                        onChange={(e) => setGlobalProjectionUnit(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                      >
+                        <option value="months">Months</option>
+                        <option value="years">Years</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={calculateGlobalProjection}
+                    className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                  >
+                    Calculate Total Projection
+                  </button>
+                </div>
+
+                {/* Projection Results */}
+                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Projection Results</h4>
+                  
+                  {globalProjection ? (
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Current Total Debt:</span>
+                        <span className="font-bold text-gray-900 dark:text-gray-100">{formatCurrency(globalProjection.currentTotal)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600 dark:text-gray-400">Projected Interest:</span>
+                        <span className="font-bold text-purple-600 dark:text-purple-400">{formatCurrency(globalProjection.projectedInterest)}</span>
+                      </div>
+                      <div className="h-px bg-gray-200 dark:bg-slate-600 my-2"></div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Future Total Amount:</span>
+                        <span className="text-lg font-bold text-purple-700 dark:text-purple-300">{formatCurrency(globalProjection.futureTotal)}</span>
+                      </div>
+                      
+                      <div className="mt-3 p-2 bg-white/50 dark:bg-slate-800/50 rounded text-xs text-gray-600 dark:text-gray-400">
+                        <strong>Projection for:</strong> {globalProjection.timePeriod}
+                        {globalProjection.activeDebtsCount > 0 && (
+                          <div><strong>Active Debts:</strong> {globalProjection.activeDebtsCount}</div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <Calculator className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Enter a time period to see projection</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Add/Edit Debt Modal */}
         {showModal && (
@@ -674,6 +845,69 @@ const DebtDetailModal = ({ debt, onClose, onEdit, onAddPayment }) => {
     }).format(amount)
   }
 
+  // State for manual projection calculator
+  const [projectionTime, setProjectionTime] = useState('')
+  const [projectionUnit, setProjectionUnit] = useState('months')
+  const [manualProjection, setManualProjection] = useState(null)
+
+  // Calculate manual projection
+  const calculateManualProjection = () => {
+    if (!projectionTime || projectionTime <= 0) {
+      setManualProjection(null)
+      return
+    }
+
+    const timeInYears = projectionUnit === 'years' ? parseFloat(projectionTime) : parseFloat(projectionTime) / 12
+    const timeInDays = timeInYears * 365
+    
+    let projectedInterest = 0
+    const currentBalance = debt.outstandingBalance
+
+    if (debt.interestType === 'none') {
+      projectedInterest = 0
+    } else if (debt.interestType === 'simple') {
+      // Simple Interest: P × R × T
+      projectedInterest = currentBalance * (debt.interestRate / 100) * timeInYears
+    } else if (debt.interestType === 'compound') {
+      // Compound Interest: P × (1 + r/n)^(n×t) - P
+      const ratePerPeriod = debt.interestRate / 100
+      let periodsPerYear = 1
+      
+      switch (debt.compoundFrequency) {
+        case 'monthly':
+          periodsPerYear = 12
+          break
+        case 'quarterly':
+          periodsPerYear = 4
+          break
+        case 'yearly':
+          periodsPerYear = 1
+          break
+        default:
+          periodsPerYear = 1
+      }
+      
+      const totalPeriods = periodsPerYear * timeInYears
+      const ratePerPeriodDecimal = ratePerPeriod / periodsPerYear
+      
+      projectedInterest = currentBalance * Math.pow(1 + ratePerPeriodDecimal, totalPeriods) - currentBalance
+    }
+
+    const projectedTotal = currentBalance + projectedInterest
+
+    setManualProjection({
+      timePeriod: `${projectionTime} ${projectionUnit}`,
+      projectedInterest,
+      projectedTotal,
+      currentBalance
+    })
+  }
+
+  // Recalculate when inputs change
+  useEffect(() => {
+    calculateManualProjection()
+  }, [projectionTime, projectionUnit])
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-slate-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -771,13 +1005,13 @@ const DebtDetailModal = ({ debt, onClose, onEdit, onAddPayment }) => {
             </div>
           </div>
 
-          {/* Predictor Card */}
+          {/* Future Projection Card */}
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Future Projection</h3>
             <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
               <div className="flex items-center mb-2">
                 <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400 mr-2" />
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">If this continues for the next 2 years...</h4>
+                <h4 className="font-medium text-gray-900 dark:text-gray-100">If this continues for next 2 years...</h4>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -789,6 +1023,90 @@ const DebtDetailModal = ({ debt, onClose, onEdit, onAddPayment }) => {
                   <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{formatCurrency(debt.projectedOutstanding2Years)}</p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Manual Projection Calculator */}
+          <div className="mb-8">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Projection Calculator</h3>
+            <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-4">
+              <div className="flex items-center mb-4">
+                <Calculator className="h-5 w-5 text-indigo-600 dark:text-indigo-400 mr-2" />
+                <h4 className="font-medium text-gray-900 dark:text-gray-100">Calculate interest for custom time period</h4>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Time Period
+                  </label>
+                  <input
+                    type="number"
+                    min="0.1"
+                    step="0.1"
+                    value={projectionTime}
+                    onChange={(e) => setProjectionTime(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                    placeholder="Enter time"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Time Unit
+                  </label>
+                  <select
+                    value={projectionUnit}
+                    onChange={(e) => setProjectionUnit(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                  >
+                    <option value="months">Months</option>
+                    <option value="years">Years</option>
+                  </select>
+                </div>
+                
+                <div className="flex items-end">
+                  <button
+                    onClick={calculateManualProjection}
+                    className="w-full px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
+                  >
+                    Calculate
+                  </button>
+                </div>
+              </div>
+
+              {manualProjection && (
+                <div className="mt-4 p-4 bg-white dark:bg-slate-800 rounded-lg border border-indigo-200 dark:border-indigo-700">
+                  <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
+                    Projection for {manualProjection.timePeriod}
+                  </h5>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Current Balance</p>
+                      <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCurrency(manualProjection.currentBalance)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Interest Accrued</p>
+                      <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(manualProjection.projectedInterest)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">Total Amount</p>
+                      <p className="text-lg font-bold text-indigo-600 dark:text-indigo-400">{formatCurrency(manualProjection.projectedTotal)}</p>
+                    </div>
+                  </div>
+                  
+                  {debt.interestType !== 'none' && (
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-slate-600">
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        <strong>Calculation:</strong> {debt.interestType === 'simple' 
+                          ? `${formatCurrency(manualProjection.currentBalance)} × ${debt.interestRate}% × ${projectionTime} ${projectionUnit}`
+                          : `Compound interest calculated with ${debt.compoundFrequency} compounding`
+                        }
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
