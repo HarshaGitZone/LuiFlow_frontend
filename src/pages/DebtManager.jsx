@@ -56,10 +56,33 @@ const DebtManager = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
+      const payload = {
+        ...formData,
+        principalAmount: Number(formData.principalAmount),
+        tenure: formData.tenure === '' ? undefined : Number(formData.tenure),
+        interestRate: formData.interestType === 'none' ? 0 : Number(formData.interestRate)
+      }
+
+      if (!Number.isFinite(payload.principalAmount) || payload.principalAmount < 0) {
+        throw new Error('Principal amount must be a valid number')
+      }
+
+      if (payload.tenure !== undefined && !Number.isFinite(payload.tenure)) {
+        delete payload.tenure
+      }
+
+      if (payload.interestType !== 'none' && (!Number.isFinite(payload.interestRate) || payload.interestRate <= 0)) {
+        throw new Error('Interest rate must be greater than 0')
+      }
+
+      if (payload.interestType !== 'compound') {
+        delete payload.compoundFrequency
+      }
+
       if (editingDebt) {
-        await api.patch(`/api/debts/${editingDebt._id}`, formData)
+        await api.patch(`/api/debts/${editingDebt._id}`, payload)
       } else {
-        await api.post('/api/debts', formData)
+        await api.post('/api/debts', payload)
       }
       
       await fetchDebts()
@@ -67,21 +90,30 @@ const DebtManager = () => {
       setEditingDebt(null)
       resetForm()
     } catch (error) {
-      console.error('Error saving debt:', error)
+      console.error('Error saving debt:', error?.response?.data?.error || error.message || error)
     }
   }
 
   const handlePaymentSubmit = async (e) => {
     e.preventDefault()
     try {
-      await api.post(`/api/debts/${selectedDebt._id}/payments`, paymentFormData)
+      const payload = {
+        ...paymentFormData,
+        amountPaid: Number(paymentFormData.amountPaid)
+      }
+
+      if (!Number.isFinite(payload.amountPaid) || payload.amountPaid <= 0) {
+        throw new Error('Amount paid must be a valid number greater than 0')
+      }
+
+      await api.post(`/api/debts/${selectedDebt._id}/payments`, payload)
       
       await fetchDebts()
       setShowPaymentModal(false)
       setSelectedDebt(null)
       resetPaymentForm()
     } catch (error) {
-      console.error('Error adding payment:', error)
+      console.error('Error adding payment:', error?.response?.data?.error || error.message || error)
     }
   }
 
@@ -90,11 +122,11 @@ const DebtManager = () => {
     setFormData({
       lenderName: debt.lenderName,
       debtType: debt.debtType,
-      principalAmount: debt.principalAmount,
+      principalAmount: String(debt.principalAmount),
       startDate: debt.startDate.split('T')[0],
-      tenure: debt.tenure || '',
+      tenure: debt.tenure ? String(debt.tenure) : '',
       interestType: debt.interestType,
-      interestRate: debt.interestRate,
+      interestRate: debt.interestRate ? String(debt.interestRate) : '',
       compoundFrequency: debt.compoundFrequency,
       notes: debt.notes || '',
       status: debt.status
@@ -409,7 +441,7 @@ const DebtManager = () => {
                       type="number"
                       step="0.01"
                       value={formData.principalAmount}
-                      onChange={(e) => setFormData({...formData, principalAmount: parseFloat(e.target.value)})}
+                      onChange={(e) => setFormData({...formData, principalAmount: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
                       required
                     />
@@ -435,7 +467,7 @@ const DebtManager = () => {
                     <input
                       type="number"
                       value={formData.tenure}
-                      onChange={(e) => setFormData({...formData, tenure: parseInt(e.target.value)})}
+                      onChange={(e) => setFormData({...formData, tenure: e.target.value})}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
                       placeholder="Optional"
                     />
@@ -466,7 +498,7 @@ const DebtManager = () => {
                           type="number"
                           step="0.01"
                           value={formData.interestRate}
-                          onChange={(e) => setFormData({...formData, interestRate: parseFloat(e.target.value)})}
+                          onChange={(e) => setFormData({...formData, interestRate: e.target.value})}
                           className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
                           required
                         />
@@ -557,7 +589,7 @@ const DebtManager = () => {
                     type="number"
                     step="0.01"
                     value={paymentFormData.amountPaid}
-                    onChange={(e) => setPaymentFormData({...paymentFormData, amountPaid: parseFloat(e.target.value)})}
+                    onChange={(e) => setPaymentFormData({...paymentFormData, amountPaid: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
                     required
                   />

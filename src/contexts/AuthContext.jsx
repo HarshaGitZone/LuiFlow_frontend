@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Failed to fetch user profile:', error)
-      if (error.response?.status === 401 || error.response?.status === 403) {
+      if ([401, 403, 404].includes(error.response?.status)) {
         localStorage.removeItem(TOKEN_STORAGE_KEY)
         persistUser(null)
       }
