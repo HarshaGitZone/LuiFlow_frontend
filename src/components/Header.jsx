@@ -3,18 +3,19 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import ColorPalette from './ColorPalette'
-import { 
-  Search, 
-  Bell, 
-  User, 
-  Settings, 
+import {
+  Search,
+  Bell,
+  User,
+  Settings,
   LogOut,
   Menu,
   Sun,
   Moon,
   TrendingUp,
   TrendingDown,
-  IndianRupee
+  IndianRupee,
+  Wallet
 } from 'lucide-react'
 
 const Header = () => {
@@ -38,7 +39,7 @@ const Header = () => {
         // This would be an actual API call
         // const response = await api.get('/transactions/quick-stats')
         // setQuickStats(response.data)
-        
+
         // Mock data for now
         setQuickStats({
           todayExpense: 1250,
@@ -79,8 +80,22 @@ const Header = () => {
     <header className="bg-white dark:bg-slate-900 shadow-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-40">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Left side - Empty for spacing */}
-          <div className="flex-1"></div>
+          {/* Left side - Logo */}
+          <div className="flex-1 flex items-center">
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="bg-blue-600 p-2 rounded-xl group-hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
+                <Wallet className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-400 dark:from-blue-400 dark:to-blue-200">
+                  LuiFlow
+                </span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium tracking-wider uppercase leading-none">
+                  Beyond the Budget
+                </span>
+              </div>
+            </Link>
+          </div>
 
           {/* Center - Search Bar (full width after sidebar) */}
           <div className="flex-1">
@@ -119,12 +134,12 @@ const Header = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* User actions */}
             <div className="flex items-center space-x-4">
               {/* Color palette selector */}
               <ColorPalette />
-              
+
               {/* Dark mode toggle */}
               <button
                 onClick={toggleTheme}

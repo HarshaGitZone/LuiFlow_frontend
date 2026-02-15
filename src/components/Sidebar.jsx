@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { 
-  LayoutDashboard, 
-  Receipt, 
-  Upload, 
-  PiggyBank, 
-  TrendingUp, 
+import {
+  LayoutDashboard,
+  Receipt,
+  Upload,
+  PiggyBank,
+  TrendingUp,
   DollarSign,
   Calendar,
   CreditCard,
@@ -52,14 +52,12 @@ const Sidebar = () => {
           <X className="h-4 w-4 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white" />
         )}
       </button>
-      
-      {/* Logo */}
-      <div className={`p-6 ${isCollapsed ? 'text-center' : ''}`}>
-        <h1 className={`${isCollapsed ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 dark:text-gray-100 transition-all duration-300`}>
-          {isCollapsed ? 'LF' : 'LuiFlow'}
-        </h1>
-      </div>
-      
+
+
+
+      <div className="mt-6 mb-2"></div>
+
+
       {/* Navigation */}
       <nav className={`mt-6 ${isCollapsed ? 'px-2' : ''}`}>
         {navigation.map((item) => {
@@ -68,11 +66,10 @@ const Sidebar = () => {
             <Link
               key={item.name}
               to={item.href}
-              className={`flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'px-6 py-3'} text-sm font-medium transition-all duration-200 ${
-                isActive
-                  ? 'bg-primary-bg dark:bg-primary-bg text-primary-dark dark:text-slate-100 border-r-4 border-primary'
-                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-gray-100'
-              }`}
+              className={`flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'px-6 py-3'} text-sm font-medium transition-all duration-200 ${isActive
+                ? 'bg-primary-bg dark:bg-primary-bg text-primary-dark dark:text-slate-100 border-r-4 border-primary'
+                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-gray-100'
+                }`}
               title={isCollapsed ? item.name : ''}
             >
               <item.icon className={`${isCollapsed ? 'mx-0' : 'mr-3'} h-5 w-5 transition-all duration-300`} />
