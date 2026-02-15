@@ -9,6 +9,7 @@ import Transactions from './pages/Transactions'
 import Import from './pages/Import'
 import Budgets from './pages/Budgets'
 import Analytics from './pages/Analytics'
+import SalaryPlanner from './pages/SalaryPlanner'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 
@@ -23,6 +24,7 @@ function App() {
         <Route path="/import" element={<Layout><Import /></Layout>} />
         <Route path="/budgets" element={<Layout><Budgets /></Layout>} />
         <Route path="/analytics" element={<Layout><Analytics /></Layout>} />
+        <Route path="/salary-planner" element={<Layout><SalaryPlanner /></Layout>} />
         <Route path="/profile" element={<Layout><Profile /></Layout>} />
         <Route path="/settings" element={<Layout><Settings /></Layout>} />
         <Route path="*" element={<Navigate to="/" replace />} />

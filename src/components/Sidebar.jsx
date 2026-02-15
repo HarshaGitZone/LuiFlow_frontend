@@ -6,6 +6,7 @@ import {
   Upload, 
   PiggyBank, 
   TrendingUp, 
+  DollarSign,
   Settings,
   User,
   Menu,
@@ -22,6 +23,7 @@ const Sidebar = () => {
     { name: 'Import', href: '/import', icon: Upload },
     { name: 'Budgets', href: '/budgets', icon: PiggyBank },
     { name: 'Analytics', href: '/analytics', icon: TrendingUp },
+    { name: 'Salary Planner', href: '/salary-planner', icon: DollarSign },
     // { name: 'Profile', href: '/profile', icon: User },
     // { name: 'Settings', href: '/settings', icon: Settings },
   ]
