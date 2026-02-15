@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
+import ColorPalette from './ColorPalette'
 import { 
   Search, 
   Bell, 
@@ -121,6 +122,9 @@ const Header = () => {
             
             {/* User actions */}
             <div className="flex items-center space-x-4">
+              {/* Color palette selector */}
+              <ColorPalette />
+              
               {/* Dark mode toggle */}
               <button
                 onClick={toggleTheme}
