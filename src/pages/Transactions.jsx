@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Search, Filter, Plus, Edit2, Trash2, X, IndianRupee } from 'lucide-react'
+import { Search, Filter, Plus, Edit2, Trash2, X, IndianRupee, ChevronLeft, ChevronRight } from 'lucide-react'
 import axios from 'axios'
 import API from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
@@ -225,7 +225,7 @@ const Transactions = () => {
                               className="inline-flex items-center text-blue-600 hover:text-blue-900"
                               title="Edit transaction"
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit2 className="h-4 w-4" />
                             </button>
                             <button
                               onClick={() => handleDelete(transaction._id)}
