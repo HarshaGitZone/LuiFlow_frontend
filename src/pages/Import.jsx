@@ -4,8 +4,10 @@ import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import API from '../api'
 import { csvImportStorage } from '../utils/storage'
+import { useCurrency } from '../contexts/CurrencyContext'
 
 const Import = () => {
+  const { formatAmount } = useCurrency()
   const navigate = useNavigate()
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -797,7 +799,7 @@ const Import = () => {
                           <tr key={index}>
                             <td className="px-3 py-2 text-xs text-gray-900">{new Date(transaction.date).toLocaleDateString()}</td>
                             <td className="px-3 py-2 text-xs text-gray-900">{transaction.description}</td>
-                            <td className="px-3 py-2 text-xs text-gray-900">₹{transaction.amount.toFixed(2)}</td>
+                            <td className="px-3 py-2 text-xs text-gray-900">{formatAmount(transaction.amount)}</td>
                             <td className="px-3 py-2 text-xs text-gray-900">{transaction.type}</td>
                             <td className="px-3 py-2 text-xs text-gray-900">{transaction.category}</td>
                           </tr>

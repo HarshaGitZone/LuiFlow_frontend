@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { api } from '../api'
+import { useCurrency } from '../contexts/CurrencyContext'
 import { 
   DollarSign, 
   Calendar, 
@@ -25,6 +26,7 @@ import {
 
 const SalaryPlanner = () => {
   const { user } = useAuth()
+  const { formatAmount } = useCurrency()
   
   // State management
   const [salary, setSalary] = useState({ amount: 0, creditDate: '01', month: new Date().toISOString().slice(0, 7) })
@@ -402,12 +404,7 @@ const SalaryPlanner = () => {
     }
   }
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(amount)
-  }
+  const formatCurrency = (amount) => formatAmount(amount)
 
   const totalFixedBills = fixedBills.reduce((sum, bill) => sum + (bill.status === 'paid' ? 0 : bill.amount), 0)
   const totalSubscriptionCost = subscriptions.reduce((sum, sub) => sum + (sub.status === 'active' ? sub.monthlyCost : 0), 0)

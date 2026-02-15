@@ -268,7 +268,7 @@ const Dashboard = () => {
                 <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
                 <YAxis />
                 <Tooltip 
-                  formatter={(value) => `₹${value.toLocaleString()}`}
+                  formatter={(value) => formatAmount(value, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}
                   contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
                 />
                 <Bar dataKey="amount" radius={[8, 8, 0, 0]} fill="#EF4444" />
@@ -293,7 +293,7 @@ const Dashboard = () => {
                         ></div>
                       </div>
                       <span className="text-sm font-semibold text-gray-900 w-24 text-right">
-                        ₹{cat.amount.toLocaleString()}
+                        {formatAmount(cat.amount, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}
                       </span>
                       <span className="text-xs text-gray-500 w-10 text-right">{cat.percentage}%</span>
                     </div>
@@ -311,3 +311,4 @@ const Dashboard = () => {
 }
 
 export default Dashboard
+

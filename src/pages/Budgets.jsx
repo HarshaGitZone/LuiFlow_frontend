@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Plus, Edit2, Trash2, X, AlertCircle, PiggyBank, TrendingUp, Target, Wallet, ArrowUpRight, Calendar, PieChart } from 'lucide-react'
 import { api } from '../api'
+import { useCurrency } from '../contexts/CurrencyContext'
 
 const INITIAL_FORM = {
   name: '',
@@ -11,6 +12,7 @@ const INITIAL_FORM = {
 }
 
 const Budgets = () => {
+  const { formatAmount } = useCurrency()
   const [budgets, setBudgets] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
@@ -72,11 +74,7 @@ const Budgets = () => {
     return 'On Track'
   }
 
-  const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    maximumFractionDigits: 0
-  }).format(Number(amount) || 0)
+  const formatCurrency = (amount) => formatAmount(Number(amount) || 0, { maximumFractionDigits: 0, minimumFractionDigits: 0 })
 
   const overview = useMemo(() => {
     const totalBudget = budgets.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, Eye, Edit2, Trash2, X, TrendingUp, TrendingDown, DollarSign, Calendar, User, CreditCard, Banknote, Calculator, ChevronRight, Clock } from 'lucide-react'
 import { api } from '../api'
+import { useCurrency } from '../contexts/CurrencyContext'
 
 const DebtManager = () => {
+  const { formatAmount } = useCurrency()
   const [debts, setDebts] = useState([])
   const [summary, setSummary] = useState({
     totalOutstandingDebt: 0,
@@ -274,12 +276,7 @@ const DebtManager = () => {
     })
   }
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(amount)
-  }
+  const formatCurrency = (amount) => formatAmount(amount)
 
   const getStatusColor = (status) => {
     return status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300'
@@ -838,12 +835,8 @@ const DebtManager = () => {
 
 // Debt Detail Modal Component
 const DebtDetailModal = ({ debt, onClose, onEdit, onAddPayment }) => {
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(amount)
-  }
+  const { formatAmount } = useCurrency()
+  const formatCurrency = (amount) => formatAmount(amount)
 
   // State for manual projection calculator
   const [projectionTime, setProjectionTime] = useState('')

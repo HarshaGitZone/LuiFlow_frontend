@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
+import { useCurrency } from '../contexts/CurrencyContext'
 import ColorPalette from './ColorPalette'
 import { api } from '../api'
 import {
@@ -15,7 +16,6 @@ import {
   Moon,
   TrendingUp,
   TrendingDown,
-  IndianRupee,
   Wallet
 } from 'lucide-react'
 
@@ -26,6 +26,7 @@ const Header = () => {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const { isDark, toggleTheme } = useTheme()
+  const { formatAmount } = useCurrency()
   const [notifications, setNotifications] = useState([])
   const [notificationsLoading, setNotificationsLoading] = useState(false)
   const [notificationsError, setNotificationsError] = useState('')
@@ -74,15 +75,6 @@ const Header = () => {
     navigate('/login')
   }
 
-  const formatCurrency = (value) => {
-    const amount = Number(value) || 0
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount)
-  }
-
   const getBillDueMessage = (dueDay, billName) => {
     const todayDay = new Date().getDate()
     const daysDiff = dueDay - todayDay
@@ -122,7 +114,7 @@ const Header = () => {
       if (spent > amount) {
         alerts.push({
           id: `budget-over-${budget._id}`,
-          text: `${budgetName} exceeded by ${formatCurrency(spent - amount)}`,
+          text: `${budgetName} exceeded by ${formatAmount(spent - amount, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}`,
           time: 'Just now',
           type: 'budget',
           severity: 'critical',
@@ -245,14 +237,12 @@ const Header = () => {
                 <div className="flex items-center text-green-600">
                   <TrendingUp className="h-4 w-4 mr-1" />
                   <span className="font-medium">Today: </span>
-                  <IndianRupee className="h-3 w-3 ml-1" />
-                  <span>{quickStats.todayIncome.toLocaleString('en-IN')}</span>
+                  <span>{formatAmount(quickStats.todayIncome, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}</span>
                 </div>
                 <div className="flex items-center text-red-600">
                   <TrendingDown className="h-4 w-4 mr-1" />
                   <span className="font-medium">Today: </span>
-                  <IndianRupee className="h-3 w-3 ml-1" />
-                  <span>{quickStats.todayExpense.toLocaleString('en-IN')}</span>
+                  <span>{formatAmount(quickStats.todayExpense, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}</span>
                 </div>
               </div>
             </div>

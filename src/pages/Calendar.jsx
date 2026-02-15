@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, X, DollarSign, TrendingUp, TrendingDown, Maximize2, Minimize2 } from 'lucide-react'
 import { api } from '../api'
+import { useCurrency } from '../contexts/CurrencyContext'
 
 const Calendar = () => {
+  const { formatAmount } = useCurrency()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(null)
   const [transactions, setTransactions] = useState([])
@@ -238,12 +240,9 @@ const Calendar = () => {
 
   const formatCurrency = (amount) => {
     if (typeof amount !== 'number' || isNaN(amount)) {
-      return '₹0.00'
+      return formatAmount(0)
     }
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR'
-    }).format(amount)
+    return formatAmount(amount)
   }
 
   const renderCalendarDays = () => {
@@ -713,3 +712,4 @@ const Calendar = () => {
 }
 
 export default Calendar
+

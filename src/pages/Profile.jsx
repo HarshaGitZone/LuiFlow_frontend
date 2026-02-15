@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { useCurrency } from '../contexts/CurrencyContext'
 import { 
   User, 
   Mail, 
@@ -19,6 +20,7 @@ import {
 
 const Profile = () => {
   const { user, updateProfile } = useAuth()
+  const { formatAmount } = useCurrency()
   const [activeTab, setActiveTab] = useState('overview')
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -119,13 +121,7 @@ const Profile = () => {
     setLoading(false)
   }
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
+  const formatCurrency = (amount) => formatAmount(amount, { maximumFractionDigits: 0, minimumFractionDigits: 0 })
 
   const StatCard = ({ title, value, change, icon: Icon, color = 'blue' }) => (
     <div className="bg-white rounded-lg shadow p-6">

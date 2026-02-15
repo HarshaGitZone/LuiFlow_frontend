@@ -3,20 +3,20 @@ import { Settings, Database, Download, Shield, Bell } from 'lucide-react'
 import { useCurrency } from '../contexts/CurrencyContext'
 
 const SettingsPage = () => {
-  const { currency, setCurrency } = useCurrency()
+  const { currency, setCurrency, getCurrencySymbol, formatAmount } = useCurrency()
   const [selectedCurrency, setSelectedCurrency] = useState(currency)
   const [dateFormat, setDateFormat] = useState('DD/MM/YYYY')
   const [timeZone, setTimeZone] = useState('Asia/Kolkata')
 
   const currencies = [
-    { code: 'INR', symbol: 'â‚¹', name: 'Indian Rupee' },
+    { code: 'INR', symbol: 'INR', name: 'Indian Rupee' },
     { code: 'USD', symbol: '$', name: 'US Dollar' },
-    { code: 'EUR', symbol: 'â‚¬', name: 'Euro' },
-    { code: 'GBP', symbol: 'Â£', name: 'British Pound' },
-    { code: 'JPY', symbol: 'Â¥', name: 'Japanese Yen' },
+    { code: 'EUR', symbol: '€', name: 'Euro' },
+    { code: 'GBP', symbol: '£', name: 'British Pound' },
+    { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
     { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
     { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
-    { code: 'CNY', symbol: 'Â¥', name: 'Chinese Yuan' }
+    { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' }
   ]
 
   const handleCurrencyChange = (e) => {
@@ -55,12 +55,13 @@ const SettingsPage = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 {currencies.map(curr => (
-                  <option key={curr.code} value={curr.symbol}>
+                  <option key={curr.code} value={curr.code}>
                     {curr.symbol} {curr.name} ({curr.code})
                   </option>
                 ))}
               </select>
-              <p className="text-xs text-gray-500 mt-1">Selected: {selectedCurrency}</p>
+              <p className="text-xs text-gray-500 mt-1">Selected: {selectedCurrency} ({getCurrencySymbol()})</p>
+              <p className="text-xs text-gray-500 mt-1">Preview from INR 10,000 base: {formatAmount(10000)}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Date Format</label>

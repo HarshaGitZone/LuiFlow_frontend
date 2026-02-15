@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { TrendingUp, TrendingDown, Activity, PieChart } from 'lucide-react'
 import { api, API } from '../api'
+import { useCurrency } from '../contexts/CurrencyContext'
 import {
   LineChart, Line, PieChart as RechartsChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -16,7 +17,7 @@ const getColors = (count) => {
 }
 
 // Numerical Category Summary
-const CategorySummary = ({ data, title, type }) => {
+const CategorySummary = ({ data, title, type, formatAmount }) => {
   const total = data.reduce((sum, item) => sum + item.amount, 0)
   
   return (
@@ -36,14 +37,14 @@ const CategorySummary = ({ data, title, type }) => {
                 </div>
               </div>
               <p className={`text-lg font-bold ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                ₹{item.amount.toLocaleString()}
+                {formatAmount(item.amount, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}
               </p>
             </div>
           ))}
           <div className="pt-2 mt-2 border-t flex justify-between items-center">
             <span className="font-semibold text-gray-900">Total {type}</span>
             <span className={`text-xl font-bold ${type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-              ₹{total.toLocaleString()}
+              {formatAmount(total, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}
             </span>
           </div>
         </div>
@@ -53,7 +54,7 @@ const CategorySummary = ({ data, title, type }) => {
 }
 
 // Donut Chart Component
-const DonutChart = ({ data, title, type }) => {
+const DonutChart = ({ data, title, type, formatAmount }) => {
   const colors = getColors(data.length)
   const chartData = data.map((item) => ({
     name: item.category.charAt(0).toUpperCase() + item.category.slice(1),
@@ -81,7 +82,7 @@ const DonutChart = ({ data, title, type }) => {
                 <Cell key={`cell-${index}`} fill={colors[index]} />
               ))}
             </Pie>
-            <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
+            <Tooltip formatter={(value) => formatAmount(value, { maximumFractionDigits: 0, minimumFractionDigits: 0 })} />
             <Legend />
           </RechartsChart>
         </ResponsiveContainer>
@@ -91,7 +92,7 @@ const DonutChart = ({ data, title, type }) => {
 }
 
 // Trend Chart with Smart Grouping
-const TrendChart = ({ data, dateRange }) => {
+const TrendChart = ({ data, dateRange, formatAmount }) => {
   if (!data || data.length === 0) {
     return (
       <div className="bg-white p-6 rounded-lg shadow">
@@ -122,7 +123,7 @@ const TrendChart = ({ data, dateRange }) => {
           <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
           <YAxis />
           <Tooltip 
-            formatter={(value) => `₹${value.toLocaleString()}`}
+            formatter={(value) => formatAmount(value, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}
             contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }}
           />
           <Legend wrapperStyle={{ paddingTop: '20px' }} />
@@ -151,7 +152,7 @@ const TrendChart = ({ data, dateRange }) => {
 }
 
 // Detailed Breakdown Table
-const DetailedBreakdown = ({ data, dateRange }) => {
+const DetailedBreakdown = ({ data, dateRange, formatAmount }) => {
   if (!data || data.length === 0) {
     return null
   }
@@ -192,13 +193,13 @@ const DetailedBreakdown = ({ data, dateRange }) => {
                 <tr key={index} className="border-b hover:bg-blue-50 transition">
                   <td className="px-4 py-3 text-gray-900 font-medium">{item.key}</td>
                   <td className="px-4 py-3 text-right text-green-600 font-semibold">
-                    ₹{item.income.toLocaleString()}
+                    {formatAmount(item.income, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}
                   </td>
                   <td className="px-4 py-3 text-right text-red-600 font-semibold">
-                    ₹{item.expenses.toLocaleString()}
+                    {formatAmount(item.expenses, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}
                   </td>
                   <td className={`px-4 py-3 text-right font-semibold ${item.net >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
-                    ₹{item.net.toLocaleString()}
+                    {formatAmount(item.net, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}
                   </td>
                   <td className="px-4 py-3 text-right font-semibold text-purple-600">
                     {savingsRate}%
@@ -214,6 +215,7 @@ const DetailedBreakdown = ({ data, dateRange }) => {
 }
 
 const Analytics = () => {
+  const { formatAmount } = useCurrency()
   const [dateRange, setDateRange] = useState('30days')
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState({
@@ -222,14 +224,6 @@ const Analytics = () => {
     expenseCategories: [],
     trend: []
   })
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0
-    }).format(amount)
-  }
 
   const getDateRangeParams = (range) => {
     const end = new Date()
@@ -312,7 +306,7 @@ const Analytics = () => {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-green-700">Total Income</p>
-              <p className="text-3xl font-bold text-green-900 mt-2">{formatCurrency(data.summary.totalIncome)}</p>
+              <p className="text-3xl font-bold text-green-900 mt-2">{formatAmount(data.summary.totalIncome, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}</p>
               <p className="text-xs text-green-600 mt-1">{data.summary.incomeCount} transactions</p>
             </div>
             <div className="p-2 bg-green-200 rounded-lg">
@@ -325,7 +319,7 @@ const Analytics = () => {
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm font-medium text-red-700">Total Expenses</p>
-              <p className="text-3xl font-bold text-red-900 mt-2">{formatCurrency(data.summary.totalExpenses)}</p>
+              <p className="text-3xl font-bold text-red-900 mt-2">{formatAmount(data.summary.totalExpenses, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}</p>
               <p className="text-xs text-red-600 mt-1">{data.summary.expenseCount} transactions</p>
             </div>
             <div className="p-2 bg-red-200 rounded-lg">
@@ -339,7 +333,7 @@ const Analytics = () => {
             <div>
               <p className={`text-sm font-medium ${data.summary.netFlow >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>Net Flow</p>
               <p className={`text-3xl font-bold mt-2 ${data.summary.netFlow >= 0 ? 'text-blue-900' : 'text-orange-900'}`}>
-                {formatCurrency(data.summary.netFlow)}
+                {formatAmount(data.summary.netFlow, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}
               </p>
               <p className={`text-xs mt-1 ${data.summary.netFlow >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
                 {data.summary.netFlow >= 0 ? 'Positive' : 'Deficit'}
@@ -371,12 +365,14 @@ const Analytics = () => {
           data={data.incomeCategories}
           title="Income by Category"
           type="income"
+          formatAmount={formatAmount}
         />
         {data.incomeCategories.length > 0 && (
           <DonutChart 
             data={data.incomeCategories}
             title="Income Distribution"
             type="income"
+            formatAmount={formatAmount}
           />
         )}
       </div>
@@ -387,23 +383,25 @@ const Analytics = () => {
           data={data.expenseCategories}
           title="Expenses by Category"
           type="expense"
+          formatAmount={formatAmount}
         />
         {data.expenseCategories.length > 0 && (
           <DonutChart 
             data={data.expenseCategories}
             title="Expense Distribution"
             type="expense"
+            formatAmount={formatAmount}
           />
         )}
       </div>
 
       {/* Trend Over Time */}
       {data.trend && data.trend.length > 0 && (
-        <TrendChart data={data.trend} dateRange={dateRange} />
+        <TrendChart data={data.trend} dateRange={dateRange} formatAmount={formatAmount} />
       )}
 
       {/* Detailed Breakdown Table */}
-      <DetailedBreakdown data={data.trend} dateRange={dateRange} />
+      <DetailedBreakdown data={data.trend} dateRange={dateRange} formatAmount={formatAmount} />
     </div>
   )
 }
