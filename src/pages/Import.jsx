@@ -185,6 +185,9 @@ const Import = () => {
         setImportStep(4)
         console.log('Import step set to 4, importResult:', response.data)
         
+        // Emit event to notify other components of data change
+        window.dispatchEvent(new CustomEvent('transaction-updated'))
+        
         // Show success message and navigate to transactions after a delay
         setTimeout(() => {
           alert(`Import completed successfully! ${response.data.summary.insertedRows} transactions imported.`)

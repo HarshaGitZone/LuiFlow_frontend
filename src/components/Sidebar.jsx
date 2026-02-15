@@ -7,6 +7,8 @@ import {
   PiggyBank, 
   TrendingUp, 
   DollarSign,
+  Calendar,
+  CreditCard,
   Settings,
   User,
   Menu,
@@ -20,6 +22,8 @@ const Sidebar = () => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: LayoutDashboard },
     { name: 'Transactions', href: '/transactions', icon: Receipt },
+    { name: 'Calendar', href: '/calendar', icon: Calendar },
+    { name: 'Debt Manager', href: '/debt-manager', icon: CreditCard },
     { name: 'Import', href: '/import', icon: Upload },
     { name: 'Budgets', href: '/budgets', icon: PiggyBank },
     { name: 'Analytics', href: '/analytics', icon: TrendingUp },

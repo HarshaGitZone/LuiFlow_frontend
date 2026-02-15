@@ -68,6 +68,9 @@ const Transactions = () => {
       try {
         await axios.delete(`${API.TRANSACTIONS}/${id}`)
         fetchTransactions() // Refresh list
+        
+        // Emit event to notify other components of data change
+        window.dispatchEvent(new CustomEvent('transaction-updated'))
       } catch (error) {
         console.error('Error deleting transaction:', error)
       }
@@ -98,6 +101,9 @@ const Transactions = () => {
       setEditingTransaction(null)
       setEditForm({})
       fetchTransactions() // Refresh list
+      
+      // Emit event to notify other components of data change
+      window.dispatchEvent(new CustomEvent('transaction-updated'))
     } catch (error) {
       console.error('Error updating transaction:', error)
     }

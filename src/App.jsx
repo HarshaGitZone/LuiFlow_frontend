@@ -6,6 +6,8 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
+import Calendar from './pages/Calendar'
+import DebtManager from './pages/DebtManager'
 import Import from './pages/Import'
 import Budgets from './pages/Budgets'
 import Analytics from './pages/Analytics'
@@ -21,6 +23,8 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/" element={<Layout><Dashboard /></Layout>} />
         <Route path="/transactions" element={<Layout><Transactions /></Layout>} />
+        <Route path="/calendar" element={<Layout><Calendar /></Layout>} />
+        <Route path="/debt-manager" element={<Layout><DebtManager /></Layout>} />
         <Route path="/import" element={<Layout><Import /></Layout>} />
         <Route path="/budgets" element={<Layout><Budgets /></Layout>} />
         <Route path="/analytics" element={<Layout><Analytics /></Layout>} />
