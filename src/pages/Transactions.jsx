@@ -30,6 +30,7 @@ const Transactions = () => {
   })
   const [customCategory, setCustomCategory] = useState('')
   const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false)
+  const [formErrors, setFormErrors] = useState({})
 
   const fetchTransactions = async () => {
     try {
@@ -107,7 +108,35 @@ const Transactions = () => {
     setShowEditModal(true)
   }
 
+  const validateForm = (formData) => {
+    const errors = {}
+    
+    if (!formData.description || formData.description.trim() === '') {
+      errors.description = 'Description is required'
+    }
+    
+    if (!formData.amount || formData.amount <= 0) {
+      errors.amount = 'Amount must be greater than 0'
+    }
+    
+    if (!formData.category || formData.category.trim() === '') {
+      errors.category = 'Category is required'
+    }
+    
+    if (!formData.date) {
+      errors.date = 'Date is required'
+    }
+    
+    return errors
+  }
+
   const handleAdd = async () => {
+    const errors = validateForm(addForm)
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
+      return
+    }
+    
     try {
       const newTransaction = {
         ...addForm,
@@ -129,6 +158,7 @@ const Transactions = () => {
       })
       setCustomCategory('')
       setShowCustomCategoryInput(false)
+      setFormErrors({})
       
       // Refresh transactions to show the new one
       await fetchTransactions()
@@ -140,7 +170,7 @@ const Transactions = () => {
       alert('Transaction added successfully!')
     } catch (error) {
       console.error('Error adding transaction:', error)
-      alert('Failed to add transaction. Please try again.')
+      setFormErrors({ general: 'Failed to add transaction. Please try again.' })
     }
   }
 
@@ -516,12 +546,19 @@ const Transactions = () => {
                   type: 'expense',
                   category: ''
                 })
+                setFormErrors({})
               }}
               className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100"
             >
               <X className="w-6 h-6" />
             </button>
           </div>
+          
+          {formErrors.general && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-red-600 dark:text-red-400 text-sm font-medium">{formErrors.general}</p>
+            </div>
+          )}
           
           <div className="space-y-4">
             <div>
@@ -530,9 +567,12 @@ const Transactions = () => {
                 type="date"
                 value={addForm.date}
                 onChange={(e) => setAddForm({...addForm, date: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100 ${formErrors.date ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`}
                 required
               />
+              {formErrors.date && (
+                <p className="text-red-500 text-sm mt-1">{formErrors.date}</p>
+              )}
             </div>
             
             <div>
@@ -541,10 +581,13 @@ const Transactions = () => {
                 type="text"
                 value={addForm.description}
                 onChange={(e) => setAddForm({...addForm, description: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100 ${formErrors.description ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`}
                 placeholder="Enter description..."
                 required
               />
+              {formErrors.description && (
+                <p className="text-red-500 text-sm mt-1">{formErrors.description}</p>
+              )}
             </div>
             
             <div>
@@ -553,12 +596,15 @@ const Transactions = () => {
                 type="number"
                 value={addForm.amount}
                 onChange={(e) => setAddForm({...addForm, amount: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100 ${formErrors.amount ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`}
                 placeholder="0.00"
                 step="0.01"
                 min="0"
                 required
               />
+              {formErrors.amount && (
+                <p className="text-red-500 text-sm mt-1">{formErrors.amount}</p>
+              )}
             </div>
             
             <div>
@@ -579,7 +625,7 @@ const Transactions = () => {
                 <select 
                   value={showCustomCategoryInput ? 'custom' : addForm.category}
                   onChange={(e) => handleCategoryChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100 ${formErrors.category ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`}
                 >
                   <option value="">Select category</option>
                   {categories.map(category => (
@@ -587,6 +633,10 @@ const Transactions = () => {
                   ))}
                   <option value="custom">+ Add Custom Category...</option>
                 </select>
+                
+                {formErrors.category && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.category}</p>
+                )}
                 
                 {showCustomCategoryInput && (
                   <div className="flex gap-2">
