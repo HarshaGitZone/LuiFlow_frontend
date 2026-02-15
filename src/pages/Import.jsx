@@ -95,17 +95,62 @@ const Import = () => {
     
     try {
       setUploading(true)
+      console.log('Starting import with file:', file.name)
+      console.log('File size:', file.size, 'bytes')
+      console.log('Column mapping:', columnMapping)
+      console.log('API URL:', API.CSV_IMPORT)
+      
+      // Test if backend is reachable first
+      try {
+        const healthResponse = await axios.get(API.HEALTH)
+        console.log('Backend health check:', healthResponse.data)
+      } catch (healthError) {
+        console.error('Backend health check failed:', healthError)
+        alert('Backend is not reachable. Please check if the server is running.')
+        return
+      }
+      
       const response = await axios.post(API.CSV_IMPORT, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
-        }
+        },
+        timeout: 60000 // 60 second timeout for large files
       })
       
-      setImportResult(response.data)
-      setImportStep(4)
+      console.log('Import response received:', response.data)
+      console.log('Response status:', response.status)
+      console.log('Response headers:', response.headers)
+      
+      if (response.data && response.data.success) {
+        console.log('Import successful, setting result and moving to step 4')
+        setImportResult(response.data)
+        setImportStep(4)
+        console.log('Import step set to 4, importResult:', response.data)
+      } else {
+        console.error('Import response indicates failure:', response.data)
+        alert(`Import failed: ${response.data?.error || 'Unknown error'}`)
+      }
     } catch (error) {
       console.error('Import error:', error)
-      alert('Failed to import CSV file')
+      console.error('Error response:', error.response?.data)
+      console.error('Error status:', error.response?.status)
+      console.error('Error headers:', error.response?.headers)
+      console.error('Full error object:', error)
+      
+      let errorMessage = 'Failed to import CSV file'
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error
+      } else if (error.response?.data?.details) {
+        errorMessage = error.response.data.details
+      } else if (error.message) {
+        errorMessage = error.message
+      } else if (error.code === 'ECONNREFUSED') {
+        errorMessage = 'Cannot connect to backend server. Please ensure the backend is running on port 10000.'
+      } else if (error.code === 'ECONNRESET') {
+        errorMessage = 'Connection was reset. The server may have timed out.'
+      }
+      
+      alert(`Import error: ${errorMessage}`)
     } finally {
       setUploading(false)
     }

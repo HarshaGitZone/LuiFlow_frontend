@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { TrendingUp, TrendingDown, DollarSign, CreditCard, ArrowUpRight, ArrowDownRight, IndianRupee } from 'lucide-react'
+import { TrendingUp, TrendingDown, DollarSign, CreditCard, ArrowUpRight, ArrowDownRight, IndianRupee, Receipt } from 'lucide-react'
 import axios from 'axios'
 import API from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
