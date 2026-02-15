@@ -22,14 +22,21 @@ const Sidebar = () => {
     { name: 'Import', href: '/import', icon: Upload },
     { name: 'Budgets', href: '/budgets', icon: PiggyBank },
     { name: 'Analytics', href: '/analytics', icon: TrendingUp },
-    { name: 'Profile', href: '/profile', icon: User },
-    { name: 'Settings', href: '/settings', icon: Settings },
+    // { name: 'Profile', href: '/profile', icon: User },
+    // { name: 'Settings', href: '/settings', icon: Settings },
   ]
 
+  // Emit custom event when sidebar state changes
+  const handleCollapseToggle = () => {
+    const newState = !isCollapsed
+    setIsCollapsed(newState)
+    window.dispatchEvent(new CustomEvent('sidebar-collapse', { detail: newState }))
+  }
+
   return (
-    <div className={`${isCollapsed ? 'w-20' : 'w-64'} bg-white shadow-lg transition-all duration-300 ease-in-out relative h-screen fixed left-0 top-16 z-30`}>
+    <div className={`${isCollapsed ? 'w-20' : 'w-64'} bg-white shadow-lg transition-all duration-300 ease-in-out fixed left-0 top-16 z-30 h-screen`}>
       <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
+        onClick={handleCollapseToggle}
         className="absolute -right-3 top-8 bg-white border border-gray-300 rounded-full p-2 shadow-md hover:shadow-lg transition-shadow duration-200 z-10"
       >
         {isCollapsed ? (
@@ -39,12 +46,14 @@ const Sidebar = () => {
         )}
       </button>
       
+      {/* Logo */}
       <div className={`p-6 ${isCollapsed ? 'text-center' : ''}`}>
         <h1 className={`${isCollapsed ? 'text-lg' : 'text-2xl'} font-bold text-gray-900 transition-all duration-300`}>
           {isCollapsed ? 'LF' : 'LuiFlow'}
         </h1>
       </div>
       
+      {/* Navigation */}
       <nav className={`mt-6 ${isCollapsed ? 'px-2' : ''}`}>
         {navigation.map((item) => {
           const isActive = location.pathname === item.href
