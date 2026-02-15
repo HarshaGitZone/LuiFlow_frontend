@@ -26,20 +26,20 @@ const Calendar = () => {
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
   const categories = [
-    'Food', 'Transport', 'Shopping', 'Entertainment', 'Bills', 
+    'Food', 'Transport', 'Shopping', 'Entertainment', 'Bills',
     'Healthcare', 'Education', 'Salary', 'Investment', 'Other'
   ]
 
   useEffect(() => {
     fetchTransactions()
-    
+
     // Listen for transaction updates from other components
     const handleTransactionUpdate = () => {
       fetchTransactions()
     }
-    
+
     window.addEventListener('transaction-updated', handleTransactionUpdate)
-    
+
     return () => {
       window.removeEventListener('transaction-updated', handleTransactionUpdate)
     }
@@ -50,12 +50,12 @@ const Calendar = () => {
       setLoading(true)
       const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
       const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
-      
+
       console.log('Fetching transactions for date range:', {
         startDate: startDate.toISOString().split('T')[0],
         endDate: endDate.toISOString().split('T')[0]
       })
-      
+
       const response = await api.get('/api/transactions', {
         params: {
           startDate: startDate.toISOString().split('T')[0],
@@ -63,9 +63,9 @@ const Calendar = () => {
           limit: 1000 // Get all transactions for the month
         }
       })
-      
+
       console.log('API response:', response.data)
-      
+
       // Use the consistent format from backend
       const transactions = response.data.transactions || response.data || []
       console.log('Setting transactions:', transactions.length, 'items')
@@ -94,7 +94,7 @@ const Calendar = () => {
     const dateStr = date.toISOString().split('T')[0]
     return transactions.filter(t => {
       // Handle both string and Date formats for transaction.date
-      const transactionDate = t.date instanceof Date 
+      const transactionDate = t.date instanceof Date
         ? t.date.toISOString().split('T')[0]
         : (typeof t.date === 'string' ? t.date.split('T')[0] : t.date)
       return transactionDate === dateStr && !t.isDeleted
@@ -149,12 +149,12 @@ const Calendar = () => {
   const handleTransactionClick = (transaction, e) => {
     e.stopPropagation()
     setEditingTransaction(transaction)
-    
+
     // Format the date properly for the input field
-    const dateStr = transaction.date instanceof Date 
+    const dateStr = transaction.date instanceof Date
       ? transaction.date.toISOString().split('T')[0]
       : (typeof transaction.date === 'string' ? transaction.date.split('T')[0] : transaction.date)
-    
+
     setFormData({
       date: dateStr,
       description: transaction.description,
@@ -173,7 +173,7 @@ const Calendar = () => {
       } else {
         await api.post('/api/transactions', formData)
       }
-      
+
       await fetchTransactions()
       setShowModal(false)
       setEditingTransaction(null)
@@ -184,7 +184,7 @@ const Calendar = () => {
         type: 'expense',
         category: ''
       })
-      
+
       // Emit event to notify other components of data change
       window.dispatchEvent(new CustomEvent('transaction-updated'))
     } catch (error) {
@@ -197,7 +197,7 @@ const Calendar = () => {
       await api.delete(`/api/transactions/${transactionId}`)
       await fetchTransactions()
       setShowModal(false)
-      
+
       // Emit event to notify other components of data change
       window.dispatchEvent(new CustomEvent('transaction-updated'))
     } catch (error) {
@@ -229,7 +229,6 @@ const Calendar = () => {
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day)
       const dayTransactions = getTransactionsForDate(date)
-      const isToday = date.toDateString() === new Date().toDateString()
       const totalIncome = dayTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0)
       const totalExpense = dayTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0)
 
@@ -237,12 +236,10 @@ const Calendar = () => {
         <div
           key={day}
           onClick={() => handleZoomDate(date)}
-          className={`h-40 border border-gray-200 dark:border-slate-700 p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors relative group ${
-            isToday ? 'bg-blue-50 dark:bg-slate-800' : 'bg-white dark:bg-slate-900'
-          }`}
+          className="h-40 border border-gray-200 dark:border-slate-700 p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors relative group bg-white dark:bg-slate-900"
         >
           <div className="flex justify-between items-start mb-2">
-            <span className={`text-sm font-medium ${isToday ? 'text-blue-600 dark:text-blue-400' : 'text-gray-900 dark:text-gray-100'}`}>
+            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
               {day}
             </span>
             <div className="flex items-center space-x-1">
@@ -263,7 +260,7 @@ const Calendar = () => {
               </button>
             </div>
           </div>
-          
+
           <div className="space-y-1 overflow-y-auto max-h-20">
             {dayTransactions.slice(0, 3).map(transaction => (
               <div
@@ -330,7 +327,7 @@ const Calendar = () => {
                   <ChevronRight className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                 </button>
               </div>
-              
+
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => navigateMonth('prev')}
@@ -376,7 +373,7 @@ const Calendar = () => {
                 </button>
               </div>
             </div>
-            
+
             <button
               onClick={() => {
                 setSelectedDate(new Date())
@@ -408,7 +405,7 @@ const Calendar = () => {
               </div>
             ))}
           </div>
-          
+
           {/* Calendar days */}
           <div className="grid grid-cols-7 gap-0">
             {loading ? (
@@ -445,7 +442,7 @@ const Calendar = () => {
                   <input
                     type="date"
                     value={formData.date}
-                    onChange={(e) => setFormData({...formData, date: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
                     required
                   />
@@ -458,7 +455,7 @@ const Calendar = () => {
                   <input
                     type="text"
                     value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
                     required
                   />
@@ -472,7 +469,7 @@ const Calendar = () => {
                     type="number"
                     step="0.01"
                     value={formData.amount}
-                    onChange={(e) => setFormData({...formData, amount: parseFloat(e.target.value)})}
+                    onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
                     required
                   />
@@ -484,7 +481,7 @@ const Calendar = () => {
                   </label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData({...formData, type: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
                   >
                     <option value="expense">Expense</option>
@@ -498,7 +495,7 @@ const Calendar = () => {
                   </label>
                   <select
                     value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
                     required
                   >
@@ -516,7 +513,7 @@ const Calendar = () => {
                   >
                     {editingTransaction ? 'Update' : 'Add'} Transaction
                   </button>
-                  
+
                   {editingTransaction && (
                     <button
                       type="button"
@@ -539,11 +536,11 @@ const Calendar = () => {
               <div className="p-6 border-b border-gray-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {zoomedDate.toLocaleDateString('en-US', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
+                    {zoomedDate.toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
                     })}
                   </h2>
                   <button
@@ -554,13 +551,13 @@ const Calendar = () => {
                   </button>
                 </div>
               </div>
-              
+
               <div className="p-6 overflow-y-auto max-h-[60vh]">
                 {(() => {
                   const dayTransactions = getTransactionsForDate(zoomedDate)
                   const totalIncome = dayTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0)
                   const totalExpense = dayTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0)
-                  
+
                   return dayTransactions.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="text-gray-500 dark:text-gray-400 mb-4">
@@ -595,7 +592,7 @@ const Calendar = () => {
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Transactions List */}
                       <div className="space-y-3">
                         {dayTransactions.map(transaction => (
@@ -607,11 +604,10 @@ const Calendar = () => {
                               <div className="flex-1">
                                 <div className="flex items-center space-x-3 mb-2">
                                   <span
-                                    className={`px-2 py-1 text-xs font-medium rounded ${
-                                      transaction.type === 'income' 
-                                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' 
-                                        : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
-                                    }`}
+                                    className={`px-2 py-1 text-xs font-medium rounded ${transaction.type === 'income'
+                                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                      : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                                      }`}
                                   >
                                     {transaction.type}
                                   </span>
@@ -624,11 +620,10 @@ const Calendar = () => {
                                 </div>
                               </div>
                               <div className="flex items-center space-x-3">
-                                <div className={`text-lg font-bold ${
-                                  transaction.type === 'income' 
-                                    ? 'text-green-600 dark:text-green-400' 
-                                    : 'text-red-600 dark:text-red-400'
-                                }`}>
+                                <div className={`text-lg font-bold ${transaction.type === 'income'
+                                  ? 'text-green-600 dark:text-green-400'
+                                  : 'text-red-600 dark:text-red-400'
+                                  }`}>
                                   {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                                 </div>
                                 <div className="flex space-x-1">
@@ -660,7 +655,7 @@ const Calendar = () => {
                           </div>
                         ))}
                       </div>
-                      
+
                       {/* Add Transaction Button */}
                       <div className="mt-6">
                         <button
