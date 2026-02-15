@@ -20,6 +20,16 @@ const Transactions = () => {
   const [editingTransaction, setEditingTransaction] = useState(null)
   const [editForm, setEditForm] = useState({})
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [addForm, setAddForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+    amount: '',
+    type: 'expense',
+    category: ''
+  })
+  const [customCategory, setCustomCategory] = useState('')
+  const [showCustomCategoryInput, setShowCustomCategoryInput] = useState(false)
 
   const fetchTransactions = async () => {
     try {
@@ -32,15 +42,23 @@ const Transactions = () => {
         ...(searchTerm && { search: searchTerm })
       })
       
+      console.log('Fetching transactions with params:', params.toString())
       const response = await api.get(`${API.TRANSACTIONS}?${params}`)
+      console.log('API response:', response.data)
+      
       setTransactions(response.data.transactions)
       setTotalPages(response.data.pagination.totalPages)
       setTotalResults(response.data.pagination.total)
       
       const uniqueCategories = [...new Set(response.data.transactions.map(t => t.category))]
+      console.log('Setting categories:', uniqueCategories)
       setCategories(uniqueCategories)
     } catch (error) {
       console.error('Error fetching transactions:', error)
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        console.log('Authentication error - user may need to login')
+      }
+      setTransactions([])
     } finally {
       setLoading(false)
     }
@@ -89,17 +107,77 @@ const Transactions = () => {
     setShowEditModal(true)
   }
 
+  const handleAdd = async () => {
+    try {
+      const newTransaction = {
+        ...addForm,
+        date: new Date(addForm.date),
+        fingerprint: `${addForm.description}-${addForm.amount}-${addForm.date}-${addForm.category}-${addForm.type}`
+      }
+      
+      console.log('Adding transaction:', newTransaction)
+      const response = await api.post('/api/transactions', newTransaction)
+      console.log('Transaction added successfully:', response.data)
+      
+      setShowAddModal(false)
+      setAddForm({
+        date: new Date().toISOString().split('T')[0],
+        description: '',
+        amount: '',
+        type: 'expense',
+        category: ''
+      })
+      setCustomCategory('')
+      setShowCustomCategoryInput(false)
+      
+      // Refresh transactions to show the new one
+      await fetchTransactions()
+      
+      // Emit event to notify other components of data change
+      window.dispatchEvent(new CustomEvent('transaction-updated'))
+      
+      // Show success message
+      alert('Transaction added successfully!')
+    } catch (error) {
+      console.error('Error adding transaction:', error)
+      alert('Failed to add transaction. Please try again.')
+    }
+  }
+
+  const handleCustomCategoryAdd = () => {
+    if (customCategory.trim() && !categories.includes(customCategory.trim())) {
+      setCategories([...categories, customCategory.trim()])
+      setAddForm({...addForm, category: customCategory.trim()})
+      setCustomCategory('')
+      setShowCustomCategoryInput(false)
+    }
+  }
+
+  const handleCategoryChange = (value) => {
+    if (value === 'custom') {
+      setShowCustomCategoryInput(true)
+      setAddForm({...addForm, category: ''})
+    } else {
+      setShowCustomCategoryInput(false)
+      setCustomCategory('')
+      setAddForm({...addForm, category: value})
+    }
+  }
+
   const handleUpdate = async () => {
     try {
       const updatedTransaction = {
         ...editForm,
-        date: new Date(editForm.date)
+        date: new Date(editForm.date),
+        fingerprint: `${editForm.description}-${editForm.amount}-${editForm.date}-${editForm.category}-${editForm.type}`
       }
       
       await axios.put(`${API.TRANSACTIONS}/${editingTransaction._id}`, updatedTransaction)
       setShowEditModal(false)
       setEditingTransaction(null)
       setEditForm({})
+      setCustomCategory('')
+      setShowCustomCategoryInput(false)
       fetchTransactions() // Refresh list
       
       // Emit event to notify other components of data change
@@ -120,9 +198,12 @@ const Transactions = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Transactions</h1>
-        <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-          <Plus className="h-4 w-4 mr-2" />
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Transactions</h1>
+        <button 
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 font-medium"
+        >
+          <Plus className="h-5 w-5 mr-2" />
           Add Transaction
         </button>
       </div>
@@ -357,13 +438,43 @@ const Transactions = () => {
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-              <input
-                type="text"
-                value={editForm.category}
-                onChange={(e) => setEditForm({...editForm, category: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+              <div className="space-y-2">
+                <select 
+                  value={showCustomCategoryInput ? 'custom' : editForm.category}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                >
+                  <option value="">Select category</option>
+                  {categories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                  <option value="custom">+ Add Custom Category...</option>
+                </select>
+                
+                {showCustomCategoryInput && (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCustomCategoryAdd()
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                      placeholder="Enter custom category..."
+                    />
+                    <button
+                      onClick={handleCustomCategoryAdd}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+                    >
+                      Add
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           
@@ -383,6 +494,147 @@ const Transactions = () => {
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Update Transaction
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    
+    {/* Add Transaction Modal */}
+    {showAddModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white dark:bg-slate-900 rounded-lg p-6 w-full max-w-md mx-4">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Add Transaction</h3>
+            <button 
+              onClick={() => {
+                setShowAddModal(false)
+                setAddForm({
+                  date: new Date().toISOString().split('T')[0],
+                  description: '',
+                  amount: '',
+                  type: 'expense',
+                  category: ''
+                })
+              }}
+              className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date</label>
+              <input
+                type="date"
+                value={addForm.date}
+                onChange={(e) => setAddForm({...addForm, date: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+              <input
+                type="text"
+                value={addForm.description}
+                onChange={(e) => setAddForm({...addForm, description: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                placeholder="Enter description..."
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount</label>
+              <input
+                type="number"
+                value={addForm.amount}
+                onChange={(e) => setAddForm({...addForm, amount: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                required
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
+              <select 
+                value={addForm.type}
+                onChange={(e) => setAddForm({...addForm, type: e.target.value})}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+              >
+                <option value="expense">Expense</option>
+                <option value="income">Income</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+              <div className="space-y-2">
+                <select 
+                  value={showCustomCategoryInput ? 'custom' : addForm.category}
+                  onChange={(e) => handleCategoryChange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                >
+                  <option value="">Select category</option>
+                  {categories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                  <option value="custom">+ Add Custom Category...</option>
+                </select>
+                
+                {showCustomCategoryInput && (
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customCategory}
+                      onChange={(e) => setCustomCategory(e.target.value)}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCustomCategoryAdd()
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                      placeholder="Enter custom category..."
+                    />
+                    <button
+                      onClick={handleCustomCategoryAdd}
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+                    >
+                      Add
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex gap-3 mt-6">
+            <button
+              onClick={() => {
+                setShowAddModal(false)
+                setAddForm({
+                  date: new Date().toISOString().split('T')[0],
+                  description: '',
+                  amount: '',
+                  type: 'expense',
+                  category: ''
+                })
+              }}
+              className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleAdd}
+              className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 font-medium"
+            >
+              Add Transaction
             </button>
           </div>
         </div>

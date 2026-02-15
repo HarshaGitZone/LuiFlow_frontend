@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, X, DollarSign, Trending
 import { api } from '../api'
 
 const Calendar = () => {
-  const [currentDate, setCurrentDate] = useState(new Date(2024, 0, 1)) // Start with January 2024 (when transactions exist)
+  const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(null)
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
