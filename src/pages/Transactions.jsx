@@ -42,15 +42,15 @@ const Transactions = () => {
         ...(categoryFilter && { category: categoryFilter }),
         ...(searchTerm && { search: searchTerm })
       })
-      
+
       console.log('Fetching transactions with params:', params.toString())
       const response = await api.get(`${API.TRANSACTIONS}?${params}`)
       console.log('API response:', response.data)
-      
+
       setTransactions(response.data.transactions)
       setTotalPages(response.data.pagination.totalPages)
       setTotalResults(response.data.pagination.total)
-      
+
       const uniqueCategories = [...new Set(response.data.transactions.map(t => t.category))]
       console.log('Setting categories:', uniqueCategories)
       setCategories(uniqueCategories)
@@ -78,7 +78,7 @@ const Transactions = () => {
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         transaction.category.toLowerCase().includes(searchTerm.toLowerCase())
+      transaction.category.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesSearch
   })
 
@@ -87,7 +87,7 @@ const Transactions = () => {
       try {
         await axios.delete(`${API.TRANSACTIONS}/${id}`)
         fetchTransactions() // Refresh list
-        
+
         // Emit event to notify other components of data change
         window.dispatchEvent(new CustomEvent('transaction-updated'))
       } catch (error) {
@@ -110,23 +110,23 @@ const Transactions = () => {
 
   const validateForm = (formData) => {
     const errors = {}
-    
+
     if (!formData.description || formData.description.trim() === '') {
       errors.description = 'Description is required'
     }
-    
+
     if (!formData.amount || formData.amount <= 0) {
       errors.amount = 'Amount must be greater than 0'
     }
-    
+
     if (!formData.category || formData.category.trim() === '') {
       errors.category = 'Category is required'
     }
-    
+
     if (!formData.date) {
       errors.date = 'Date is required'
     }
-    
+
     return errors
   }
 
@@ -136,18 +136,18 @@ const Transactions = () => {
       setFormErrors(errors)
       return
     }
-    
+
     try {
       const newTransaction = {
         ...addForm,
         date: new Date(addForm.date),
         fingerprint: `${addForm.description}-${addForm.amount}-${addForm.date}-${addForm.category}-${addForm.type}`
       }
-      
+
       console.log('Adding transaction:', newTransaction)
       const response = await api.post('/api/transactions', newTransaction)
       console.log('Transaction added successfully:', response.data)
-      
+
       setShowAddModal(false)
       setAddForm({
         date: new Date().toISOString().split('T')[0],
@@ -159,13 +159,13 @@ const Transactions = () => {
       setCustomCategory('')
       setShowCustomCategoryInput(false)
       setFormErrors({})
-      
+
       // Refresh transactions to show the new one
       await fetchTransactions()
-      
+
       // Emit event to notify other components of data change
       window.dispatchEvent(new CustomEvent('transaction-updated'))
-      
+
       // Show success message
       alert('Transaction added successfully!')
     } catch (error) {
@@ -177,7 +177,7 @@ const Transactions = () => {
   const handleCustomCategoryAdd = () => {
     if (customCategory.trim() && !categories.includes(customCategory.trim())) {
       setCategories([...categories, customCategory.trim()])
-      setAddForm({...addForm, category: customCategory.trim()})
+      setAddForm({ ...addForm, category: customCategory.trim() })
       setCustomCategory('')
       setShowCustomCategoryInput(false)
     }
@@ -186,11 +186,11 @@ const Transactions = () => {
   const handleCategoryChange = (value) => {
     if (value === 'custom') {
       setShowCustomCategoryInput(true)
-      setAddForm({...addForm, category: ''})
+      setAddForm({ ...addForm, category: '' })
     } else {
       setShowCustomCategoryInput(false)
       setCustomCategory('')
-      setAddForm({...addForm, category: value})
+      setAddForm({ ...addForm, category: value })
     }
   }
 
@@ -201,15 +201,15 @@ const Transactions = () => {
         date: new Date(editForm.date),
         fingerprint: `${editForm.description}-${editForm.amount}-${editForm.date}-${editForm.category}-${editForm.type}`
       }
-      
-      await axios.put(`${API.TRANSACTIONS}/${editingTransaction._id}`, updatedTransaction)
+
+      await api.put(`${API.TRANSACTIONS}/${editingTransaction._id}`, updatedTransaction)
       setShowEditModal(false)
       setEditingTransaction(null)
       setEditForm({})
       setCustomCategory('')
       setShowCustomCategoryInput(false)
       fetchTransactions() // Refresh list
-      
+
       // Emit event to notify other components of data change
       window.dispatchEvent(new CustomEvent('transaction-updated'))
     } catch (error) {
@@ -229,7 +229,7 @@ const Transactions = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Transactions</h1>
-        <button 
+        <button
           onClick={() => setShowAddModal(true)}
           className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 font-medium"
         >
@@ -253,7 +253,7 @@ const Transactions = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            <select 
+            <select
               value={typeFilter}
               onChange={(e) => {
                 setTypeFilter(e.target.value)
@@ -265,7 +265,7 @@ const Transactions = () => {
               <option value="income">Income</option>
               <option value="expense">Expense</option>
             </select>
-            <select 
+            <select
               value={categoryFilter}
               onChange={(e) => {
                 setCategoryFilter(e.target.value)
@@ -331,17 +331,15 @@ const Transactions = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            transaction.type === 'income' 
-                              ? 'bg-green-100 text-green-800' 
+                          <span className={`px-2 py-1 text-xs rounded-full ${transaction.type === 'income'
+                              ? 'bg-green-100 text-green-800'
                               : 'bg-red-100 text-red-800'
-                          }`}>
+                            }`}>
                             {transaction.type}
                           </span>
                         </td>
-                        <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-medium ${
-                          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-                        }`}>
+                        <td className={`px-6 py-4 whitespace-nowrap text-right text-sm font-medium ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                          }`}>
                           {formatAmountWithSign(transaction.amount, transaction.type)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -383,7 +381,7 @@ const Transactions = () => {
                   <span className="font-medium">{totalResults}</span> results
                 </div>
                 <div className="flex gap-2">
-                  <button 
+                  <button
                     onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                     disabled={currentPage === 1}
                     className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
@@ -391,7 +389,7 @@ const Transactions = () => {
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     Previous
                   </button>
-                  <button 
+                  <button
                     onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                     disabled={currentPage === totalPages}
                     className="px-3 py-1 border border-gray-300 rounded-md text-sm hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
@@ -405,293 +403,293 @@ const Transactions = () => {
           </>
         )}
       </div>
-    {/* Edit Modal */}
-    {showEditModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Edit Transaction</h3>
-            <button 
-              onClick={() => {
-                setShowEditModal(false)
-                setEditingTransaction(null)
-                setEditForm({})
-              }}
-              className="text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
-              <input
-                type="date"
-                value={editForm.date}
-                onChange={(e) => setEditForm({...editForm, date: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
-              <input
-                type="text"
-                value={editForm.description}
-                onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
-              <input
-                type="number"
-                step="0.01"
-                value={editForm.amount}
-                onChange={(e) => setEditForm({...editForm, amount: parseFloat(e.target.value)})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
-              <select
-                value={editForm.type}
-                onChange={(e) => setEditForm({...editForm, type: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+      {/* Edit Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Transaction</h3>
+              <button
+                onClick={() => {
+                  setShowEditModal(false)
+                  setEditingTransaction(null)
+                  setEditForm({})
+                }}
+                className="text-gray-400 hover:text-gray-600"
               >
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
-              </select>
+                <X className="w-6 h-6" />
+              </button>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-              <div className="space-y-2">
-                <select 
-                  value={showCustomCategoryInput ? 'custom' : editForm.category}
-                  onChange={(e) => handleCategoryChange(e.target.value)}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                <input
+                  type="date"
+                  value={editForm.date}
+                  onChange={(e) => setEditForm({ ...editForm, date: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <input
+                  type="text"
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Amount</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editForm.amount}
+                  onChange={(e) => setEditForm({ ...editForm, amount: parseFloat(e.target.value) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                <select
+                  value={editForm.type}
+                  onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="income">Income</option>
+                  <option value="expense">Expense</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                <div className="space-y-2">
+                  <select
+                    value={showCustomCategoryInput ? 'custom' : editForm.category}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                  >
+                    <option value="">Select category</option>
+                    {categories.map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                    <option value="custom">+ Add Custom Category...</option>
+                  </select>
+
+                  {showCustomCategoryInput && (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={customCategory}
+                        onChange={(e) => setCustomCategory(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleCustomCategoryAdd()
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                        placeholder="Enter custom category..."
+                      />
+                      <button
+                        onClick={handleCustomCategoryAdd}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowEditModal(false)
+                  setEditingTransaction(null)
+                  setEditForm({})
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpdate}
+                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Update Transaction
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Transaction Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-slate-900 rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Add Transaction</h3>
+              <button
+                onClick={() => {
+                  setShowAddModal(false)
+                  setAddForm({
+                    date: new Date().toISOString().split('T')[0],
+                    description: '',
+                    amount: '',
+                    type: 'expense',
+                    category: ''
+                  })
+                  setFormErrors({})
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {formErrors.general && (
+              <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <p className="text-red-600 dark:text-red-400 text-sm font-medium">{formErrors.general}</p>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date</label>
+                <input
+                  type="date"
+                  value={addForm.date}
+                  onChange={(e) => setAddForm({ ...addForm, date: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100 ${formErrors.date ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`}
+                  required
+                />
+                {formErrors.date && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.date}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+                <input
+                  type="text"
+                  value={addForm.description}
+                  onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100 ${formErrors.description ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`}
+                  placeholder="Enter description..."
+                  required
+                />
+                {formErrors.description && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.description}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount</label>
+                <input
+                  type="number"
+                  value={addForm.amount}
+                  onChange={(e) => setAddForm({ ...addForm, amount: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100 ${formErrors.amount ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`}
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  required
+                />
+                {formErrors.amount && (
+                  <p className="text-red-500 text-sm mt-1">{formErrors.amount}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
+                <select
+                  value={addForm.type}
+                  onChange={(e) => setAddForm({ ...addForm, type: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
                 >
-                  <option value="">Select category</option>
-                  {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                  <option value="custom">+ Add Custom Category...</option>
+                  <option value="expense">Expense</option>
+                  <option value="income">Income</option>
                 </select>
-                
-                {showCustomCategoryInput && (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={customCategory}
-                      onChange={(e) => setCustomCategory(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleCustomCategoryAdd()
-                        }
-                      }}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
-                      placeholder="Enter custom category..."
-                    />
-                    <button
-                      onClick={handleCustomCategoryAdd}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
-                    >
-                      Add
-                    </button>
-                  </div>
-                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
+                <div className="space-y-2">
+                  <select
+                    value={showCustomCategoryInput ? 'custom' : addForm.category}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100 ${formErrors.category ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`}
+                  >
+                    <option value="">Select category</option>
+                    {categories.map(category => (
+                      <option key={category} value={category}>{category}</option>
+                    ))}
+                    <option value="custom">+ Add Custom Category...</option>
+                  </select>
+
+                  {formErrors.category && (
+                    <p className="text-red-500 text-sm mt-1">{formErrors.category}</p>
+                  )}
+
+                  {showCustomCategoryInput && (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={customCategory}
+                        onChange={(e) => setCustomCategory(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            handleCustomCategoryAdd()
+                          }
+                        }}
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                        placeholder="Enter custom category..."
+                      />
+                      <button
+                        onClick={handleCustomCategoryAdd}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-          
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={() => {
-                setShowEditModal(false)
-                setEditingTransaction(null)
-                setEditForm({})
-              }}
-              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleUpdate}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Update Transaction
-            </button>
-          </div>
-        </div>
-      </div>
-    )}
-    
-    {/* Add Transaction Modal */}
-    {showAddModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-slate-900 rounded-lg p-6 w-full max-w-md mx-4">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Add Transaction</h3>
-            <button 
-              onClick={() => {
-                setShowAddModal(false)
-                setAddForm({
-                  date: new Date().toISOString().split('T')[0],
-                  description: '',
-                  amount: '',
-                  type: 'expense',
-                  category: ''
-                })
-                setFormErrors({})
-              }}
-              className="text-gray-400 hover:text-gray-600 dark:text-gray-300 dark:hover:text-gray-100"
-            >
-              <X className="w-6 h-6" />
-            </button>
-          </div>
-          
-          {formErrors.general && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <p className="text-red-600 dark:text-red-400 text-sm font-medium">{formErrors.general}</p>
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Date</label>
-              <input
-                type="date"
-                value={addForm.date}
-                onChange={(e) => setAddForm({...addForm, date: e.target.value})}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100 ${formErrors.date ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`}
-                required
-              />
-              {formErrors.date && (
-                <p className="text-red-500 text-sm mt-1">{formErrors.date}</p>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
-              <input
-                type="text"
-                value={addForm.description}
-                onChange={(e) => setAddForm({...addForm, description: e.target.value})}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100 ${formErrors.description ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`}
-                placeholder="Enter description..."
-                required
-              />
-              {formErrors.description && (
-                <p className="text-red-500 text-sm mt-1">{formErrors.description}</p>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Amount</label>
-              <input
-                type="number"
-                value={addForm.amount}
-                onChange={(e) => setAddForm({...addForm, amount: e.target.value})}
-                className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100 ${formErrors.amount ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`}
-                placeholder="0.00"
-                step="0.01"
-                min="0"
-                required
-              />
-              {formErrors.amount && (
-                <p className="text-red-500 text-sm mt-1">{formErrors.amount}</p>
-              )}
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Type</label>
-              <select 
-                value={addForm.type}
-                onChange={(e) => setAddForm({...addForm, type: e.target.value})}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowAddModal(false)
+                  setAddForm({
+                    date: new Date().toISOString().split('T')[0],
+                    description: '',
+                    amount: '',
+                    type: 'expense',
+                    category: ''
+                  })
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700"
               >
-                <option value="expense">Expense</option>
-                <option value="income">Income</option>
-              </select>
+                Cancel
+              </button>
+              <button
+                onClick={handleAdd}
+                className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 font-medium"
+              >
+                Add Transaction
+              </button>
             </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Category</label>
-              <div className="space-y-2">
-                <select 
-                  value={showCustomCategoryInput ? 'custom' : addForm.category}
-                  onChange={(e) => handleCategoryChange(e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100 ${formErrors.category ? 'border-red-500' : 'border-gray-300 dark:border-slate-600'}`}
-                >
-                  <option value="">Select category</option>
-                  {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                  <option value="custom">+ Add Custom Category...</option>
-                </select>
-                
-                {formErrors.category && (
-                  <p className="text-red-500 text-sm mt-1">{formErrors.category}</p>
-                )}
-                
-                {showCustomCategoryInput && (
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={customCategory}
-                      onChange={(e) => setCustomCategory(e.target.value)}
-                      onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                          handleCustomCategoryAdd()
-                        }
-                      }}
-                      className="flex-1 px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
-                      placeholder="Enter custom category..."
-                    />
-                    <button
-                      onClick={handleCustomCategoryAdd}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
-                    >
-                      Add
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex gap-3 mt-6">
-            <button
-              onClick={() => {
-                setShowAddModal(false)
-                setAddForm({
-                  date: new Date().toISOString().split('T')[0],
-                  description: '',
-                  amount: '',
-                  type: 'expense',
-                  category: ''
-                })
-              }}
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleAdd}
-              className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 font-medium"
-            >
-              Add Transaction
-            </button>
           </div>
         </div>
-      </div>
-    )}
-  </div>
-)
+      )}
+    </div>
+  )
 }
 
 export default Transactions

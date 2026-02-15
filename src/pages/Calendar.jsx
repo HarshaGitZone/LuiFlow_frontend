@@ -91,12 +91,27 @@ const Calendar = () => {
 
   const getTransactionsForDate = (date) => {
     if (!Array.isArray(transactions)) return []
-    const dateStr = date.toISOString().split('T')[0]
+
+    // Create a local date string manually to avoid timezone issues with toISOString()
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
+
     return transactions.filter(t => {
       // Handle both string and Date formats for transaction.date
-      const transactionDate = t.date instanceof Date
-        ? t.date.toISOString().split('T')[0]
-        : (typeof t.date === 'string' ? t.date.split('T')[0] : t.date)
+      let transactionDate
+      if (t.date instanceof Date) {
+        const tYear = t.date.getFullYear()
+        const tMonth = String(t.date.getMonth() + 1).padStart(2, '0')
+        const tDay = String(t.date.getDate()).padStart(2, '0')
+        transactionDate = `${tYear}-${tMonth}-${tDay}`
+      } else if (typeof t.date === 'string') {
+        transactionDate = t.date.split('T')[0]
+      } else {
+        transactionDate = t.date
+      }
+
       return transactionDate === dateStr && !t.isDeleted
     })
   }
@@ -127,8 +142,14 @@ const Calendar = () => {
 
   const handleDateClick = (date) => {
     setSelectedDate(date)
+    // Create a local date string manually
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    const dateStr = `${year}-${month}-${day}`
+
     setFormData({
-      date: date.toISOString().split('T')[0],
+      date: dateStr,
       description: '',
       amount: '',
       type: 'expense',
@@ -151,9 +172,19 @@ const Calendar = () => {
     setEditingTransaction(transaction)
 
     // Format the date properly for the input field
-    const dateStr = transaction.date instanceof Date
-      ? transaction.date.toISOString().split('T')[0]
-      : (typeof transaction.date === 'string' ? transaction.date.split('T')[0] : transaction.date)
+    let dateStr
+    const tDate = transaction.date instanceof Date ? transaction.date : new Date(transaction.date)
+
+    if (!isNaN(tDate.getTime())) {
+      const year = tDate.getFullYear()
+      const month = String(tDate.getMonth() + 1).padStart(2, '0')
+      const day = String(tDate.getDate()).padStart(2, '0')
+      dateStr = `${year}-${month}-${day}`
+    } else if (typeof transaction.date === 'string') {
+      dateStr = transaction.date.split('T')[0]
+    } else {
+      dateStr = ''
+    }
 
     setFormData({
       date: dateStr,

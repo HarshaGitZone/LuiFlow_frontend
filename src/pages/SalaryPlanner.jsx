@@ -58,7 +58,7 @@ const SalaryPlanner = () => {
   const loadSalaryPlanner = async (month = currentMonth) => {
     try {
       setLoading(true)
-      const response = await api.get(`/salary-planner?month=${month}`)
+      const response = await api.get(`/api/salary-planner?month=${month}`)
       const data = response.data.data
       
       if (data) {
@@ -84,7 +84,7 @@ const SalaryPlanner = () => {
   // Load cumulative savings data
   const loadCumulativeSavings = async () => {
     try {
-      const response = await api.get('/salary-planner/cumulative-savings')
+      const response = await api.get('/api/salary-planner/cumulative-savings')
       setCumulativeSavings(response.data.data)
     } catch (error) {
       console.error('Error loading cumulative savings:', error)
@@ -97,7 +97,7 @@ const SalaryPlanner = () => {
       const currentMonthSaved = savingsGoals.reduce((sum, goal) => sum + (goal.savedAmount || 0), 0) + manualSavings
       const goalsCompleted = savingsGoals.filter(goal => goal.savedAmount >= goal.targetAmount).length
       
-      await api.put('/salary-planner/cumulative-savings', {
+      await api.put('/api/salary-planner/cumulative-savings', {
         month: currentMonth,
         saved: currentMonthSaved,
         goalsCompleted
@@ -113,7 +113,7 @@ const SalaryPlanner = () => {
   const saveSalaryPlanner = async (updates) => {
     try {
       setSaving(true)
-      await api.put('/salary-planner', {
+      await api.put('/api/salary-planner', {
         month: currentMonth,
         updates
       })
@@ -162,13 +162,13 @@ const SalaryPlanner = () => {
       setSaving(true)
       
       if (editingBill) {
-        await api.put('/salary-planner/fixed-bill', {
+        await api.put('/api/salary-planner/fixed-bill', {
           month: currentMonth,
           billId: editingBill._id,
           updates: billData
         })
       } else {
-        await api.post('/salary-planner/fixed-bill', {
+        await api.post('/api/salary-planner/fixed-bill', {
           month: currentMonth,
           bill: { ...billData, status: 'unpaid' }
         })
@@ -188,7 +188,7 @@ const SalaryPlanner = () => {
   const deleteBill = async (billId) => {
     try {
       setSaving(true)
-      await api.delete('/salary-planner/fixed-bill', {
+      await api.delete('/api/salary-planner/fixed-bill', {
         data: { month: currentMonth, billId }
       })
       await loadSalaryPlanner(currentMonth)
@@ -205,7 +205,7 @@ const SalaryPlanner = () => {
       setSaving(true)
       const bill = fixedBills.find(b => b._id === billId)
       if (bill) {
-        await api.put('/salary-planner/fixed-bill', {
+        await api.put('/api/salary-planner/fixed-bill', {
           month: currentMonth,
           billId,
           updates: { ...bill, status: bill.status === 'paid' ? 'unpaid' : 'paid' }
@@ -225,13 +225,13 @@ const SalaryPlanner = () => {
       setSaving(true)
       
       if (editingGoal) {
-        await api.put('/salary-planner/savings-goal', {
+        await api.put('/api/salary-planner/savings-goal', {
           month: currentMonth,
           goalId: editingGoal._id,
           updates: goalData
         })
       } else {
-        await api.post('/salary-planner/savings-goal', {
+        await api.post('/api/salary-planner/savings-goal', {
           month: currentMonth,
           goal: { ...goalData, savedAmount: 0, monthlyContribution: 0, status: 'active' }
         })
@@ -252,7 +252,7 @@ const SalaryPlanner = () => {
   const deleteGoal = async (goalId) => {
     try {
       setSaving(true)
-      await api.delete('/salary-planner/savings-goal', {
+      await api.delete('/api/salary-planner/savings-goal', {
         data: { month: currentMonth, goalId }
       })
       await loadSalaryPlanner(currentMonth)
@@ -270,7 +270,7 @@ const SalaryPlanner = () => {
       setSaving(true)
       const goal = savingsGoals.find(g => g._id === goalId)
       if (goal) {
-        await api.put('/salary-planner/savings-goal', {
+        await api.put('/api/salary-planner/savings-goal', {
           month: currentMonth,
           goalId,
           updates: { ...goal, savedAmount: goal.savedAmount + amount }
@@ -288,7 +288,7 @@ const SalaryPlanner = () => {
   // Load subscription summary and warnings
   const loadSubscriptionSummary = async (month = currentMonth) => {
     try {
-      const response = await api.get(`/salary-planner/subscriptions?month=${month}&warningThreshold=1000`)
+      const response = await api.get(`/api/salary-planner/subscriptions?month=${month}&warningThreshold=1000`)
       setSubscriptionWarning(response.data.data.warning)
     } catch (error) {
       console.error('Error loading subscription summary:', error)
@@ -301,13 +301,13 @@ const SalaryPlanner = () => {
       setSaving(true)
       
       if (editingSubscription) {
-        await api.put('/salary-planner/subscription', {
+        await api.put('/api/salary-planner/subscription', {
           month: currentMonth,
           subscriptionId: editingSubscription._id,
           updates: subscriptionData
         })
       } else {
-        await api.post('/salary-planner/subscription', {
+        await api.post('/api/salary-planner/subscription', {
           month: currentMonth,
           subscription: { ...subscriptionData, status: 'active' }
         })
@@ -327,7 +327,7 @@ const SalaryPlanner = () => {
   const deleteSubscription = async (subscriptionId) => {
     try {
       setSaving(true)
-      await api.delete('/salary-planner/subscription', {
+      await api.delete('/api/salary-planner/subscription', {
         data: { month: currentMonth, subscriptionId }
       })
       await loadSalaryPlanner(currentMonth)
@@ -345,7 +345,7 @@ const SalaryPlanner = () => {
       const subscription = subscriptions.find(s => s._id === subscriptionId)
       if (subscription) {
         const newStatus = subscription.status === 'active' ? 'paused' : 'active'
-        await api.put('/salary-planner/subscription', {
+        await api.put('/api/salary-planner/subscription', {
           month: currentMonth,
           subscriptionId,
           updates: { ...subscription, status: newStatus }
@@ -367,7 +367,7 @@ const SalaryPlanner = () => {
       setManualSavings(newTotal)
       
       // Update cumulative savings to include manual savings
-      await api.put('/salary-planner/cumulative-savings', {
+      await api.put('/api/salary-planner/cumulative-savings', {
         month: currentMonth,
         saved: newTotal,
         goalsCompleted: savingsGoals.filter(goal => goal.savedAmount >= goal.targetAmount).length
@@ -388,7 +388,7 @@ const SalaryPlanner = () => {
       setManualSavings(newTotal)
       
       // Update cumulative savings to include manual savings withdrawal
-      await api.put('/salary-planner/cumulative-savings', {
+      await api.put('/api/salary-planner/cumulative-savings', {
         month: currentMonth,
         saved: newTotal,
         goalsCompleted: savingsGoals.filter(goal => goal.savedAmount >= goal.targetAmount).length
@@ -460,7 +460,9 @@ const SalaryPlanner = () => {
                   onChange={(e) => {
                     const newAmount = parseFloat(e.target.value) || 0
                     setSalary(prev => ({ ...prev, amount: newAmount }))
-                    saveSalaryPlanner({ salary: { ...salary, amount: newAmount } })
+                  }}
+                  onBlur={() => {
+                    saveSalaryPlanner({ salary: { ...salary, amount: Number(salary.amount) || 0 } })
                   }}
                   className="w-full pl-8 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                   placeholder="45000"
