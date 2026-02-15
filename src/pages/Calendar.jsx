@@ -350,7 +350,7 @@ const Calendar = () => {
               </div>
 
               <div className="flex items-center space-x-2">
-                <button
+                {/* <button
                   onClick={() => setCurrentDate(new Date(2024, 0, 1))}
                   className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
                 >
@@ -367,7 +367,7 @@ const Calendar = () => {
                   className="px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded-lg hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
                 >
                   Jan 2025
-                </button>
+                </button> */}
                 <button
                   onClick={() => setCurrentDate(new Date())}
                   className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"

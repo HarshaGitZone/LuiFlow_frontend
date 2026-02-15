@@ -70,7 +70,7 @@ const Sidebar = () => {
               to={item.href}
               className={`flex items-center ${isCollapsed ? 'justify-center px-2 py-3' : 'px-6 py-3'} text-sm font-medium transition-all duration-200 ${
                 isActive
-                  ? 'bg-blue-50 dark:bg-slate-800 text-blue-700 dark:text-blue-300 border-r-4 border-blue-700 dark:border-blue-400'
+                  ? 'bg-primary-bg dark:bg-primary-bg text-primary-dark dark:text-slate-100 border-r-4 border-primary'
                   : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-gray-900 dark:hover:text-gray-100'
               }`}
               title={isCollapsed ? item.name : ''}
