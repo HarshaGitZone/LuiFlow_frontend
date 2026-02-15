@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import { Plus, Search, Filter, Edit, Trash2, ChevronLeft, ChevronRight, X } from 'lucide-react'
-import { useCurrency } from '../contexts/CurrencyContext'
+import { Search, Filter, Plus, Edit2, Trash2, X, IndianRupee } from 'lucide-react'
 import axios from 'axios'
+import API from '../api'
+import { useCurrency } from '../contexts/CurrencyContext'
 
 const Transactions = () => {
   const { formatAmountWithSign } = useCurrency()
@@ -28,7 +29,7 @@ const Transactions = () => {
         ...(categoryFilter && { category: categoryFilter })
       })
       
-      const response = await axios.get(`http://localhost:10000/api/transactions?${params}`)
+      const response = await axios.get(`${API.TRANSACTIONS}?${params}`)
       setTransactions(response.data.transactions)
       setTotalPages(response.data.pagination.totalPages)
       setTotalResults(response.data.pagination.total)
@@ -56,7 +57,7 @@ const Transactions = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
       try {
-        await axios.delete(`http://localhost:10000/api/transactions/${id}`)
+        await axios.delete(`${API.TRANSACTIONS}/${id}`)
         fetchTransactions() // Refresh list
       } catch (error) {
         console.error('Error deleting transaction:', error)
@@ -83,7 +84,7 @@ const Transactions = () => {
         date: new Date(editForm.date)
       }
       
-      await axios.put(`http://localhost:10000/api/transactions/${editingTransaction._id}`, updatedTransaction)
+      await axios.put(`${API.TRANSACTIONS}/${editingTransaction._id}`, updatedTransaction)
       setShowEditModal(false)
       setEditingTransaction(null)
       setEditForm({})

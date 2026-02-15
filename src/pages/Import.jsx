@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Eye, Database, Play, ChevronLeft, ChevronRight } from 'lucide-react'
 import axios from 'axios'
+import API from '../api'
 
 const Import = () => {
   const [file, setFile] = useState(null)
@@ -29,7 +30,7 @@ const Import = () => {
     
     try {
       setUploading(true)
-      const response = await axios.post('http://localhost:10000/api/csv/preview', formData, {
+      const response = await axios.post(API.CSV_PREVIEW, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -94,7 +95,7 @@ const Import = () => {
     
     try {
       setUploading(true)
-      const response = await axios.post('http://localhost:10000/api/csv/import', formData, {
+      const response = await axios.post(API.CSV_IMPORT, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -123,7 +124,7 @@ const Import = () => {
     try {
       setUploading(true)
       console.log('Sending dry run request...')
-      const response = await axios.post('http://localhost:10000/api/csv/dry-run', formData, {
+      const response = await axios.post(API.CSV_DRY_RUN, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

@@ -11,15 +11,13 @@ export const useCurrency = () => {
 }
 
 export const CurrencyProvider = ({ children }) => {
-  const [currency, setCurrency] = useState('₹') // Default to Indian Rupee
+  const [currency, setCurrency] = useState('₹') 
   
   useEffect(() => {
-    // Load saved currency from localStorage on mount
     const savedCurrency = localStorage.getItem('selectedCurrency')
     if (savedCurrency) {
       setCurrency(savedCurrency)
     } else {
-      // Set default to Indian Rupee in localStorage
       localStorage.setItem('selectedCurrency', '₹')
     }
   }, [])
