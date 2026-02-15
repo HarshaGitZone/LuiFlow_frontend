@@ -2,6 +2,17 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { api } from '../api'
 
 const AuthContext = createContext()
+const TOKEN_STORAGE_KEY = 'token'
+const USER_STORAGE_KEY = 'auth_user'
+
+const getStoredUser = () => {
+  try {
+    const raw = localStorage.getItem(USER_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
@@ -12,14 +23,24 @@ export const useAuth = () => {
 }
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null)
+  const [user, setUser] = useState(() => getStoredUser())
   const [loading, setLoading] = useState(true)
 
+  const persistUser = (nextUser) => {
+    setUser(nextUser)
+    if (nextUser) {
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser))
+    } else {
+      localStorage.removeItem(USER_STORAGE_KEY)
+    }
+  }
+
   useEffect(() => {
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem(TOKEN_STORAGE_KEY)
     if (token) {
       fetchUserProfile()
     } else {
+      persistUser(null)
       setLoading(false)
     }
   }, [])
@@ -27,10 +48,16 @@ export const AuthProvider = ({ children }) => {
   const fetchUserProfile = async () => {
     try {
       const response = await api.get('/api/auth/profile')
-      setUser(response.data.user)
+      const profileUser = response?.data?.data?.user
+      if (profileUser) {
+        persistUser(profileUser)
+      }
     } catch (error) {
       console.error('Failed to fetch user profile:', error)
-      localStorage.removeItem('token')
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        localStorage.removeItem(TOKEN_STORAGE_KEY)
+        persistUser(null)
+      }
     } finally {
       setLoading(false)
     }
@@ -41,8 +68,8 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/api/auth/login', { email, password })
       const { token, user } = response.data.data
       
-      localStorage.setItem('token', token)
-      setUser(user)
+      localStorage.setItem(TOKEN_STORAGE_KEY, token)
+      persistUser(user)
       
       return { success: true }
     } catch (error) {
@@ -58,8 +85,8 @@ export const AuthProvider = ({ children }) => {
       const response = await api.post('/api/auth/register', userData)
       const { token, user } = response.data.data
       
-      localStorage.setItem('token', token)
-      setUser(user)
+      localStorage.setItem(TOKEN_STORAGE_KEY, token)
+      persistUser(user)
       
       return { success: true }
     } catch (error) {
@@ -71,14 +98,17 @@ export const AuthProvider = ({ children }) => {
   }
 
   const logout = () => {
-    localStorage.removeItem('token')
-    setUser(null)
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
+    persistUser(null)
   }
 
   const updateProfile = async (userData) => {
     try {
       const response = await api.put('/api/auth/profile', userData)
-      setUser(response.data.user)
+      const updatedUser = response?.data?.data?.user
+      if (updatedUser) {
+        persistUser(updatedUser)
+      }
       return { success: true }
     } catch (error) {
       return { 

@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
 import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Eye, Database, Play, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import API from '../api'
 
 const Import = () => {
+  const navigate = useNavigate()
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
   const [preview, setPreview] = useState(null)
@@ -126,6 +128,12 @@ const Import = () => {
         setImportResult(response.data)
         setImportStep(4)
         console.log('Import step set to 4, importResult:', response.data)
+        
+        // Show success message and navigate to transactions after a delay
+        setTimeout(() => {
+          alert(`Import completed successfully! ${response.data.summary.insertedRows} transactions imported.`)
+          navigate('/transactions')
+        }, 2000)
       } else {
         console.error('Import response indicates failure:', response.data)
         alert(`Import failed: ${response.data?.error || 'Unknown error'}`)
@@ -670,8 +678,15 @@ const Import = () => {
 
           <div className="flex gap-4">
             <button
-              onClick={resetImport}
+              onClick={() => navigate('/transactions')}
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              <ArrowRight className="h-4 w-4 mr-2" />
+              View Transactions
+            </button>
+            <button
+              onClick={resetImport}
+              className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
             >
               Import Another File
             </button>

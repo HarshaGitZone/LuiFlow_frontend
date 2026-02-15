@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { Search, Filter, Plus, Edit2, Trash2, X, IndianRupee, ChevronLeft, ChevronRight } from 'lucide-react'
-import axios from 'axios'
+import { useSearchParams } from 'react-router-dom'
+import { api } from '../api'
 import API from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
 
 const Transactions = () => {
   const { formatAmountWithSign } = useCurrency()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
   const [typeFilter, setTypeFilter] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
@@ -26,15 +28,15 @@ const Transactions = () => {
         page: currentPage,
         limit: 10,
         ...(typeFilter && { type: typeFilter }),
-        ...(categoryFilter && { category: categoryFilter })
+        ...(categoryFilter && { category: categoryFilter }),
+        ...(searchTerm && { search: searchTerm })
       })
       
-      const response = await axios.get(`${API.TRANSACTIONS}?${params}`)
+      const response = await api.get(`${API.TRANSACTIONS}?${params}`)
       setTransactions(response.data.transactions)
       setTotalPages(response.data.pagination.totalPages)
       setTotalResults(response.data.pagination.total)
       
-      // Extract unique categories for filter dropdown
       const uniqueCategories = [...new Set(response.data.transactions.map(t => t.category))]
       setCategories(uniqueCategories)
     } catch (error) {
@@ -46,7 +48,14 @@ const Transactions = () => {
 
   useEffect(() => {
     fetchTransactions()
-  }, [currentPage, typeFilter, categoryFilter])
+  }, [currentPage, typeFilter, categoryFilter, searchTerm])
+
+  useEffect(() => {
+    const urlSearchTerm = searchParams.get('search')
+    if (urlSearchTerm !== searchTerm) {
+      setSearchTerm(urlSearchTerm || '')
+    }
+  }, [searchParams])
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||

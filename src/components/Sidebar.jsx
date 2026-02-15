@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 
 const Sidebar = () => {
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true')
   const location = useLocation()
 
   const navigation = [
@@ -30,6 +30,7 @@ const Sidebar = () => {
   const handleCollapseToggle = () => {
     const newState = !isCollapsed
     setIsCollapsed(newState)
+    localStorage.setItem('sidebar_collapsed', String(newState))
     window.dispatchEvent(new CustomEvent('sidebar-collapse', { detail: newState }))
   }
 
