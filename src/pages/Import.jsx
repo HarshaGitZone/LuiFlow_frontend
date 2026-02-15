@@ -114,6 +114,9 @@ const Import = () => {
   const handleDryRun = async () => {
     if (!file) return
     
+    console.log('API BASE URL:', import.meta.env.VITE_API_URL);
+    console.log('API CSV_DRY_RUN:', API.CSV_DRY_RUN);
+    
     console.log('Starting dry run with file:', file.name)
     console.log('Column mapping:', columnMapping)
     
