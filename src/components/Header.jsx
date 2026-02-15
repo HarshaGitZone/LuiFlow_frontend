@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import ColorPalette from './ColorPalette'
+import { api } from '../api'
 import {
   Search,
   Bell,
@@ -25,6 +26,9 @@ const Header = () => {
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const { isDark, toggleTheme } = useTheme()
+  const [notifications, setNotifications] = useState([])
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [notificationsError, setNotificationsError] = useState('')
   const [quickStats, setQuickStats] = useState({
     todayExpense: 0,
     todayIncome: 0,
@@ -70,11 +74,129 @@ const Header = () => {
     navigate('/login')
   }
 
-  const notifications = [
-    { id: 1, text: 'New transaction added: Grocery shopping - ₹2,500', time: '2 min ago', type: 'transaction' },
-    { id: 2, text: 'Budget alert: Entertainment 80% used', time: '1 hour ago', type: 'budget' },
-    { id: 3, text: 'Monthly report is ready', time: '3 hours ago', type: 'report' },
-  ]
+  const formatCurrency = (value) => {
+    const amount = Number(value) || 0
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount)
+  }
+
+  const getBillDueMessage = (dueDay, billName) => {
+    const todayDay = new Date().getDate()
+    const daysDiff = dueDay - todayDay
+
+    if (daysDiff < 0) {
+      return {
+        text: `${billName} was due on day ${dueDay} (${Math.abs(daysDiff)} day${Math.abs(daysDiff) === 1 ? '' : 's'} overdue)`,
+        severity: 'critical'
+      }
+    }
+
+    if (daysDiff === 0) {
+      return {
+        text: `${billName} is due today`,
+        severity: 'critical'
+      }
+    }
+
+    return {
+      text: `${billName} is due in ${daysDiff} day${daysDiff === 1 ? '' : 's'}`,
+      severity: daysDiff <= 2 ? 'warning' : 'info'
+    }
+  }
+
+  const buildNotifications = (budgets = [], fixedBills = []) => {
+    const alerts = []
+
+    budgets.forEach((budget) => {
+      const amount = Number(budget.amount) || 0
+      const spent = Number(budget.spent) || 0
+      const budgetName = budget.name || budget.category || 'Budget'
+
+      if (amount <= 0) return
+
+      const usagePercent = (spent / amount) * 100
+
+      if (spent > amount) {
+        alerts.push({
+          id: `budget-over-${budget._id}`,
+          text: `${budgetName} exceeded by ${formatCurrency(spent - amount)}`,
+          time: 'Just now',
+          type: 'budget',
+          severity: 'critical',
+          sortWeight: 0
+        })
+      } else if (usagePercent >= 80) {
+        alerts.push({
+          id: `budget-near-${budget._id}`,
+          text: `${budgetName} is ${Math.round(usagePercent)}% used`,
+          time: 'Just now',
+          type: 'budget',
+          severity: 'warning',
+          sortWeight: 1
+        })
+      }
+    })
+
+    fixedBills
+      .filter((bill) => bill?.status !== 'paid')
+      .forEach((bill) => {
+        const dueDay = Number.parseInt(bill.dueDate, 10)
+        if (!Number.isInteger(dueDay)) return
+
+        const todayDay = new Date().getDate()
+        const daysDiff = dueDay - todayDay
+
+        if (daysDiff <= 7) {
+          const dueMessage = getBillDueMessage(dueDay, bill.name || 'Bill')
+          alerts.push({
+            id: `bill-due-${bill._id}`,
+            text: dueMessage.text,
+            time: 'This month',
+            type: 'bill',
+            severity: dueMessage.severity,
+            sortWeight: dueMessage.severity === 'critical' ? 0 : dueMessage.severity === 'warning' ? 1 : 2
+          })
+        }
+      })
+
+    return alerts.sort((a, b) => a.sortWeight - b.sortWeight)
+  }
+
+  const fetchNotifications = async () => {
+    try {
+      setNotificationsLoading(true)
+      setNotificationsError('')
+
+      const month = new Date().toISOString().slice(0, 7)
+      const [budgetsResult, plannerResult] = await Promise.allSettled([
+        api.get('/api/budgets'),
+        api.get(`/api/salary-planner?month=${month}`)
+      ])
+
+      const budgets = budgetsResult.status === 'fulfilled' && Array.isArray(budgetsResult.value.data)
+        ? budgetsResult.value.data
+        : []
+
+      const fixedBills = plannerResult.status === 'fulfilled'
+        ? plannerResult.value.data?.data?.fixedBills || []
+        : []
+
+      if (budgetsResult.status === 'rejected' && plannerResult.status === 'rejected') {
+        setNotificationsError('Failed to load notifications')
+      }
+
+      setNotifications(buildNotifications(budgets, fixedBills))
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error)
+      setNotifications([])
+      setNotificationsError('Failed to load notifications')
+    } finally {
+      setNotificationsLoading(false)
+    }
+  }
 
   return (
     <header className="bg-white dark:bg-slate-900 shadow-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-40">
@@ -157,13 +279,21 @@ const Header = () => {
               <div className="relative">
                 <button
                   onClick={() => {
-                    setShowNotifications(!showNotifications)
+                    setShowNotifications((prev) => {
+                      const next = !prev
+                      if (next) {
+                        fetchNotifications()
+                      }
+                      return next
+                    })
                     setShowProfile(false)
                   }}
                   className="p-2 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md relative"
                 >
                   <Bell className="h-5 w-5" />
-                  <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+                  {notifications.length > 0 && (
+                    <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+                  )}
                 </button>
 
                 {showNotifications && (
@@ -172,17 +302,36 @@ const Header = () => {
                       <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Notifications</h3>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
-                      {notifications.map((notification) => (
+                      {notificationsLoading && (
+                        <div className="p-4">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Loading notifications...</p>
+                        </div>
+                      )}
+
+                      {!notificationsLoading && notificationsError && notifications.length === 0 && (
+                        <div className="p-4">
+                          <p className="text-sm text-red-600 dark:text-red-400">{notificationsError}</p>
+                        </div>
+                      )}
+
+                      {!notificationsLoading && !notificationsError && notifications.length === 0 && (
+                        <div className="p-4">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">No active budget or bill alerts.</p>
+                        </div>
+                      )}
+
+                      {!notificationsLoading && notifications.map((notification) => (
                         <div key={notification.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-800 border-b border-gray-100 dark:border-slate-700">
-                          <p className="text-sm text-gray-900 dark:text-gray-100">{notification.text}</p>
+                          <p className={`text-sm ${
+                            notification.severity === 'critical'
+                              ? 'text-red-600 dark:text-red-400'
+                              : notification.severity === 'warning'
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-gray-900 dark:text-gray-100'
+                          }`}>{notification.text}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{notification.time}</p>
                         </div>
                       ))}
-                    </div>
-                    <div className="p-3 border-t border-gray-200 dark:border-slate-700">
-                      <button className="text-sm text-blue-600 hover:text-blue-500 font-medium">
-                        View all notifications
-                      </button>
                     </div>
                   </div>
                 )}
@@ -250,3 +399,4 @@ const Header = () => {
 }
 
 export default Header
+

@@ -9,6 +9,7 @@ const Dashboard = () => {
   const { formatAmount, formatAmountWithSign } = useCurrency()
   const [summary, setSummary] = useState({ totalIncome: 0, totalExpenses: 0, netFlow: 0 })
   const [recentTransactions, setRecentTransactions] = useState([])
+  const [monthlyStats, setMonthlyStats] = useState({ income: 0, expenses: 0, topCategory: 'N/A' })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -19,6 +20,26 @@ const Dashboard = () => {
 
         const transactionsResponse = await api.get(`${API.TRANSACTIONS}?limit=5`)
         setRecentTransactions(transactionsResponse.data.transactions)
+
+        // Fetch Last Month's stats
+        const now = new Date()
+        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)
+
+        const analyticsResponse = await api.get(API.ANALYTICS, {
+          params: {
+            startDate: startOfLastMonth.toISOString(),
+            endDate: endOfLastMonth.toISOString()
+          }
+        })
+
+        const analyticsData = analyticsResponse.data
+        setMonthlyStats({
+          income: analyticsData.summary.totalIncome,
+          expenses: analyticsData.summary.totalExpenses,
+          topCategory: analyticsData.categorySpend.length > 0 ? analyticsData.categorySpend[0].category : 'None'
+        })
+
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
       } finally {
@@ -40,7 +61,7 @@ const Dashboard = () => {
   return (
     <div className="space-y-6">
       <WelcomeHeader />
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-lg shadow">
           <div className="flex items-center">
@@ -117,21 +138,30 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h2>
           <div className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-              <span className="text-green-800 font-medium">Average Income</span>
+              <div className="flex flex-col">
+                <span className="text-sm text-green-800 font-medium">Last Month Income</span>
+                <span className="text-xs text-green-600">vs Prev Month</span>
+              </div>
               <span className="text-green-900 font-bold">
-                {summary.totalIncome > 0 ? formatAmount(summary.totalIncome / 12) : formatAmount(0)}
+                {formatAmount(monthlyStats.income)}
               </span>
             </div>
             <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg">
-              <span className="text-red-800 font-medium">Average Expenses</span>
+              <div className="flex flex-col">
+                <span className="text-sm text-red-800 font-medium">Last Month Expenses</span>
+                <span className="text-xs text-red-600">vs Prev Month</span>
+              </div>
               <span className="text-red-900 font-bold">
-                {summary.totalExpenses > 0 ? formatAmount(summary.totalExpenses / 12) : formatAmount(0)}
+                {formatAmount(monthlyStats.expenses)}
               </span>
             </div>
             <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-              <span className="text-blue-800 font-medium">Savings Rate</span>
+              <div className="flex flex-col">
+                <span className="text-sm text-blue-800 font-medium">Top Category</span>
+                <span className="text-xs text-blue-600">Most Spent</span>
+              </div>
               <span className="text-blue-900 font-bold">
-                {summary.totalIncome > 0 ? Math.round((summary.netFlow / summary.totalIncome) * 100) : 0}%
+                {monthlyStats.topCategory}
               </span>
             </div>
           </div>
