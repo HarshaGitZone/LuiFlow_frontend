@@ -13,7 +13,8 @@ import {
   Settings,
   User,
   Menu,
-  X
+  X,
+  BarChart3
 } from 'lucide-react'
 
 const Sidebar = () => {
@@ -26,6 +27,7 @@ const Sidebar = () => {
     { name: 'Calendar', href: '/calendar', icon: Calendar },
     { name: 'Budgets', href: '/budgets', icon: PiggyBank },
     { name: 'Salary Planner', href: '/salary-planner', icon: DollarSign },
+    { name: 'Stocks', href: '/stocks', icon: BarChart3 },
     { name: 'Debt Manager', href: '/debt-manager', icon: CreditCard },
     { name: 'Analytics', href: '/analytics', icon: TrendingUp },
     { name: 'Import', href: '/import', icon: Upload },

@@ -13,6 +13,7 @@ import Budgets from './pages/Budgets'
 import Analytics from './pages/Analytics'
 import Reports from './pages/Reports'
 import SalaryPlanner from './pages/SalaryPlanner'
+import Stocks from './pages/Stocks'
 import Profile from './pages/Profile'
 import Settings from './pages/Settings'
 
@@ -31,6 +32,7 @@ function App() {
         <Route path="/reports" element={<Layout><Reports /></Layout>} />
         <Route path="/analytics" element={<Layout><Analytics /></Layout>} />
         <Route path="/salary-planner" element={<Layout><SalaryPlanner /></Layout>} />
+        <Route path="/stocks" element={<Layout><Stocks /></Layout>} />
         <Route path="/profile" element={<Layout><Profile /></Layout>} />
         <Route path="/settings" element={<Layout><Settings /></Layout>} />
         <Route path="*" element={<Navigate to="/" replace />} />
