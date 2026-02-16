@@ -33,6 +33,8 @@ interface FormErrors {
   general?: string;
 }
 
+type DateFilterMode = 'single' | 'range'
+
 const Transactions: React.FC = () => {
   const { formatAmountWithSign } = useCurrency()
   const { formatDate } = useDateFormatter()
@@ -42,6 +44,11 @@ const Transactions: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>(searchParams.get('search') || '')
   const [typeFilter, setTypeFilter] = useState<string>('')
   const [categoryFilter, setCategoryFilter] = useState<string>('')
+  const [showFilters, setShowFilters] = useState<boolean>(false)
+  const [dateFilterMode, setDateFilterMode] = useState<DateFilterMode>('range')
+  const [singleDate, setSingleDate] = useState<string>('')
+  const [startDate, setStartDate] = useState<string>('')
+  const [endDate, setEndDate] = useState<string>('')
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [totalPages, setTotalPages] = useState<number>(1)
   const [totalResults, setTotalResults] = useState<number>(0)
@@ -61,6 +68,28 @@ const Transactions: React.FC = () => {
   const [showCustomCategoryInput, setShowCustomCategoryInput] = useState<boolean>(false)
   const [formErrors, setFormErrors] = useState<FormErrors>({})
 
+  const getDateQueryParams = () => {
+    if (dateFilterMode === 'single' && singleDate) {
+      return { startDate: singleDate, endDate: singleDate }
+    }
+
+    if (startDate && endDate && startDate > endDate) {
+      return {}
+    }
+
+    return {
+      ...(startDate && { startDate }),
+      ...(endDate && { endDate })
+    }
+  }
+
+  const clearDateFilters = () => {
+    setSingleDate('')
+    setStartDate('')
+    setEndDate('')
+    setCurrentPage(1)
+  }
+
   const fetchTransactions = async () => {
     try {
       setLoading(true)
@@ -69,7 +98,8 @@ const Transactions: React.FC = () => {
         limit: '10',
         ...(typeFilter && { type: typeFilter }),
         ...(categoryFilter && { category: categoryFilter }),
-        ...(searchTerm && { search: searchTerm })
+        ...(searchTerm && { search: searchTerm }),
+        ...getDateQueryParams()
       })
 
       console.log('Fetching transactions with params:', params.toString())
@@ -96,20 +126,24 @@ const Transactions: React.FC = () => {
 
   useEffect(() => {
     fetchTransactions()
-  }, [currentPage, typeFilter, categoryFilter, searchTerm])
+  }, [currentPage, typeFilter, categoryFilter, searchTerm, dateFilterMode, singleDate, startDate, endDate])
 
   useEffect(() => {
     const urlSearchTerm = searchParams.get('search')
     if (urlSearchTerm !== searchTerm) {
       setSearchTerm(urlSearchTerm || '')
+      setCurrentPage(1)
     }
   }, [searchParams])
 
-  const filteredTransactions = transactions.filter(transaction => {
-    const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      transaction.category.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesSearch
-  })
+  useEffect(() => {
+    if (dateFilterMode === 'single') {
+      setStartDate('')
+      setEndDate('')
+    } else {
+      setSingleDate('')
+    }
+  }, [dateFilterMode])
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
@@ -268,7 +302,20 @@ const Transactions: React.FC = () => {
                 type="text"
                 placeholder="Search transactions..."
                 value={searchTerm}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  const nextSearch = e.target.value
+                  setSearchTerm(nextSearch)
+                  setCurrentPage(1)
+                  const nextParams = new URLSearchParams(searchParams)
+                  if (nextSearch.trim()) nextParams.set('search', nextSearch.trim())
+                  else nextParams.delete('search')
+                  setSearchParams(nextParams)
+                }}
+                onKeyDown={(e: KeyboardEvent<HTMLInputElement>) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                  }
+                }}
                 className="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
@@ -299,12 +346,109 @@ const Transactions: React.FC = () => {
                 <option key={category} value={category}>{category}</option>
               ))}
             </select>
-            <button className="w-full sm:w-auto px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800 flex items-center justify-center">
+            <button
+              onClick={() => setShowFilters((prev) => !prev)}
+              className={`w-full sm:w-auto px-4 py-2 border rounded-lg flex items-center justify-center ${showFilters
+                ? 'border-blue-500 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                : 'border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-slate-800'
+                }`}
+            >
               <Filter className="h-4 w-4 mr-2" />
               Filters
             </button>
           </div>
         </div>
+
+        {showFilters && (
+          <div className="mb-6 p-4 border border-gray-200 dark:border-slate-700 rounded-lg bg-gray-50 dark:bg-slate-800/50 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  setDateFilterMode('single')
+                  setCurrentPage(1)
+                }}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium ${dateFilterMode === 'single'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300'
+                  }`}
+              >
+                Single Date
+              </button>
+              <button
+                onClick={() => {
+                  setDateFilterMode('range')
+                  setCurrentPage(1)
+                }}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium ${dateFilterMode === 'range'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-white dark:bg-slate-900 border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300'
+                  }`}
+              >
+                Date Range
+              </button>
+            </div>
+
+            {dateFilterMode === 'single' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Select date</label>
+                  <input
+                    type="date"
+                    value={singleDate}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      setSingleDate(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+                <button
+                  onClick={clearDateFilters}
+                  className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-slate-900"
+                >
+                  Clear Date
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">From</label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      setStartDate(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">To</label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                      setEndDate(e.target.value)
+                      setCurrentPage(1)
+                    }}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+                <button
+                  onClick={clearDateFilters}
+                  className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-white dark:hover:bg-slate-900"
+                >
+                  Clear Range
+                </button>
+              </div>
+            )}
+
+            {dateFilterMode === 'range' && startDate && endDate && startDate > endDate && (
+              <p className="text-sm text-red-600 dark:text-red-400">Start date must be before end date.</p>
+            )}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-8">
@@ -337,8 +481,8 @@ const Transactions: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-700">
-                  {filteredTransactions.length > 0 ? (
-                    filteredTransactions.map((transaction) => (
+                  {transactions.length > 0 ? (
+                    transactions.map((transaction) => (
                       <tr key={transaction._id} className="hover:bg-gray-50 dark:hover:bg-slate-800">
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                           {formatDate(transaction.date)}
@@ -395,8 +539,8 @@ const Transactions: React.FC = () => {
 
               {/* Mobile View: Cards */}
               <div className="md:hidden space-y-4">
-                {filteredTransactions.length > 0 ? (
-                  filteredTransactions.map((transaction) => (
+                {transactions.length > 0 ? (
+                  transactions.map((transaction) => (
                     <div key={transaction._id} className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg p-4 shadow-sm">
                       <div className="flex justify-between items-start mb-2">
                         <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -457,7 +601,7 @@ const Transactions: React.FC = () => {
               </div>
             </div>
 
-            {filteredTransactions.length > 0 && (
+            {transactions.length > 0 && (
               <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-3 bg-gray-50 dark:bg-slate-800 border-t border-gray-200 dark:border-slate-700 rounded-b-lg gap-3">
                 <div className="text-sm text-gray-700 dark:text-gray-300 text-center sm:text-left">
                   Showing <span className="font-medium">{(currentPage - 1) * 10 + 1}</span> to{' '}

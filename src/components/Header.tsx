@@ -6,7 +6,6 @@ import { useCurrency } from '../contexts/CurrencyContext'
 import ColorPalette from './ColorPalette'
 import { api } from '../api'
 import {
-  Search,
   Bell,
   User,
   Settings,
@@ -38,7 +37,6 @@ interface Notification {
 const Header: React.FC = () => {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const [searchQuery, setSearchQuery] = useState('')
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
   const { isDark, toggleTheme } = useTheme()
@@ -54,37 +52,63 @@ const Header: React.FC = () => {
   })
 
   useEffect(() => {
-    // Fetch quick stats for the header
     const fetchQuickStats = async () => {
       try {
-        // This would be an actual API call
-        // const response = await api.get('/transactions/quick-stats')
-        // setQuickStats(response.data)
+        const now = new Date()
+        const startOfToday = new Date(now)
+        startOfToday.setHours(0, 0, 0, 0)
+        const endOfToday = new Date(now)
+        endOfToday.setHours(23, 59, 59, 999)
 
-        // Mock data for now
+        const startOfWeek = new Date(now)
+        startOfWeek.setDate(now.getDate() - now.getDay())
+        startOfWeek.setHours(0, 0, 0, 0)
+
+        const [todayResponse, weekResponse] = await Promise.all([
+          api.get('/api/analytics', {
+            params: {
+              startDate: startOfToday.toISOString(),
+              endDate: endOfToday.toISOString()
+            }
+          }),
+          api.get('/api/analytics', {
+            params: {
+              startDate: startOfWeek.toISOString(),
+              endDate: endOfToday.toISOString()
+            }
+          })
+        ])
+
         setQuickStats({
-          todayExpense: 1250,
-          todayIncome: 5000,
-          weekExpense: 8500,
-          weekIncome: 15000
+          todayExpense: Number(todayResponse.data?.summary?.totalExpenses) || 0,
+          todayIncome: Number(todayResponse.data?.summary?.totalIncome) || 0,
+          weekExpense: Number(weekResponse.data?.summary?.totalExpenses) || 0,
+          weekIncome: Number(weekResponse.data?.summary?.totalIncome) || 0
         })
       } catch (error) {
         console.error('Failed to fetch quick stats:', error)
+        setQuickStats({
+          todayExpense: 0,
+          todayIncome: 0,
+          weekExpense: 0,
+          weekIncome: 0
+        })
       }
     }
 
     if (user) {
       fetchQuickStats()
+
+      const handleTransactionUpdate = () => {
+        fetchQuickStats()
+      }
+
+      window.addEventListener('transaction-updated', handleTransactionUpdate)
+      return () => {
+        window.removeEventListener('transaction-updated', handleTransactionUpdate)
+      }
     }
   }, [user])
-
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      navigate(`/transactions?search=${encodeURIComponent(searchQuery)}`)
-      setSearchQuery('')
-    }
-  }
 
   const handleLogout = () => {
     logout()
@@ -211,7 +235,7 @@ const Header: React.FC = () => {
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Left side - Logo */}
-          <div className="flex-1 flex items-center">
+          <div className="flex items-center">
             <Link to="/" className="flex items-center gap-2 group">
               <div className="bg-blue-600 p-2 rounded-xl group-hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
                 <Wallet className="h-6 w-6 text-white" />
@@ -227,26 +251,8 @@ const Header: React.FC = () => {
             </Link>
           </div>
 
-          {/* Center - Search Bar (full width after sidebar) */}
-          <div className="flex-1">
-            <form onSubmit={handleSearch} className="w-full max-w-2xl">
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
-                </div>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-md leading-5 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  placeholder="Search transactions, categories..."
-                />
-              </div>
-            </form>
-          </div>
-
           {/* Right side - Quick Stats and User actions */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 ml-auto">
             {/* Quick Stats */}
             <div className="hidden lg:flex items-center space-x-4">
               <div className="flex items-center space-x-4 text-sm">
