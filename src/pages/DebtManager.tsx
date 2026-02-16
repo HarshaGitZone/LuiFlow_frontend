@@ -2318,17 +2318,17 @@ const DebtManager: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Debt Manager</h1>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Debt Manager</h1>
           <button
             onClick={() => {
               resetForm()
               setEditingDebt(null)
               setShowModal(true)
             }}
-            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            className="w-full sm:w-auto flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
           >
             <Plus className="h-4 w-4" />
             <span>Add Debt</span>
@@ -2400,11 +2400,11 @@ const DebtManager: React.FC = () => {
               <div className="space-y-4">
                 {debts.map((debt) => (
                   <div key={debt._id} className="border border-gray-200 dark:border-slate-700 rounded-lg p-3 sm:p-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
                       <div className="flex-1">
-                        <div className="flex items-center space-x-3 mb-2">
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
                           {getDebtTypeIcon(debt.debtType)}
-                          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{debt.lenderName}</h3>
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 break-words">{debt.lenderName}</h3>
                           <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(debt.status)}`}>
                             {debt.status}
                           </span>
@@ -2436,7 +2436,7 @@ const DebtManager: React.FC = () => {
                         </div>
                       </div>
                       
-                      <div className="flex flex-wrap items-center gap-2 mt-3 sm:mt-0 sm:ml-4">
+                      <div className="flex flex-wrap items-center gap-2 mt-1 xl:mt-0 xl:ml-4">
                         <button
                           onClick={() => handleViewDetail(debt)}
                           className="flex items-center gap-1 px-3 py-1.5 bg-primary-bg dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 text-primary-dark dark:text-primary-light border border-primary rounded-lg transition-colors text-sm font-medium"
@@ -2565,14 +2565,14 @@ const DebtManager: React.FC = () => {
         )}
 
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-900 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-lg max-w-2xl w-full max-h-[92vh] overflow-y-auto">
+              <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   {editingDebt ? 'Edit Debt' : 'Add New Debt'}
                 </h2>
               </div>
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Lender Name *</label>
@@ -2679,7 +2679,7 @@ const DebtManager: React.FC = () => {
                     />
                   </div>
                 </div>
-                <div className="flex justify-end space-x-3 pt-4">
+                <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
@@ -2700,14 +2700,14 @@ const DebtManager: React.FC = () => {
         )}
 
         {showPaymentModal && selectedDebt && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
             <div className="bg-white dark:bg-slate-900 rounded-lg max-w-md w-full">
-              <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+              <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   Add Payment - {selectedDebt.lenderName}
                 </h2>
               </div>
-              <form onSubmit={handlePaymentSubmit} className="p-6 space-y-4">
+              <form onSubmit={handlePaymentSubmit} className="p-4 sm:p-6 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Payment Date *</label>
                   <input
@@ -2753,7 +2753,7 @@ const DebtManager: React.FC = () => {
                     placeholder="Optional notes about this payment"
                   />
                 </div>
-                <div className="flex justify-end space-x-3 pt-4">
+                <div className="flex flex-col sm:flex-row sm:justify-end gap-3 pt-4">
                   <button
                     type="button"
                     onClick={() => setShowPaymentModal(false)}
@@ -2854,11 +2854,11 @@ const DebtDetailModal: React.FC<DebtDetailModalProps> = ({ debt, onClose, onEdit
   }, [projectionTime, projectionUnit])
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white dark:bg-slate-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+      <div className="bg-white dark:bg-slate-900 rounded-lg max-w-4xl w-full max-h-[92vh] overflow-y-auto">
+        <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{debt.lenderName}</h2>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 break-words pr-3">{debt.lenderName}</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -2868,8 +2868,8 @@ const DebtDetailModal: React.FC<DebtDetailModalProps> = ({ debt, onClose, onEdit
           </div>
         </div>
         
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <div className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div className="bg-gray-50 dark:bg-slate-800 rounded-lg p-4">
               <p className="text-sm text-gray-600 dark:text-gray-400">Principal Amount</p>
               <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{formatCurrency(debt.principalAmount)}</p>
@@ -2890,7 +2890,7 @@ const DebtDetailModal: React.FC<DebtDetailModalProps> = ({ debt, onClose, onEdit
 
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Debt Information</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Type</p>
                 <p className="font-medium text-gray-900 dark:text-gray-100 capitalize">{debt.debtType}</p>
@@ -2954,7 +2954,7 @@ const DebtDetailModal: React.FC<DebtDetailModalProps> = ({ debt, onClose, onEdit
                 <TrendingUp className="h-5 w-5 text-primary dark:text-primary-light mr-2" />
                 <h4 className="font-semibold text-primary-dark dark:text-primary-light">If this continues for next 2 years...</h4>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-gray-700 dark:text-gray-300">Projected Interest</p>
                   <p className="text-lg font-bold text-primary dark:text-primary-light">{formatCurrency(debt.projectedInterest2Years || 0)}</p>
@@ -3014,7 +3014,7 @@ const DebtDetailModal: React.FC<DebtDetailModalProps> = ({ debt, onClose, onEdit
                   <h5 className="font-medium text-gray-900 dark:text-gray-100 mb-3">
                     Projection for {manualProjection.timePeriod}
                   </h5>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                       <p className="text-sm text-gray-600 dark:text-gray-400">Current Balance</p>
                       <p className="text-lg font-bold text-gray-900 dark:text-gray-100">{formatCurrency(manualProjection.currentBalance)}</p>

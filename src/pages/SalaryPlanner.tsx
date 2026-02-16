@@ -2424,14 +2424,14 @@ const SalaryPlanner: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 p-4 sm:p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 p-3 sm:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Salary Planner</h1>
           <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">Manage your monthly budget, track expenses, and achieve your savings goals</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 mb-6">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center">
               <DollarSign className="h-6 w-6 mr-2 text-blue-600" />
@@ -2488,19 +2488,19 @@ const SalaryPlanner: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
           {/* Fixed Bills Section */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 h-full flex flex-col min-h-[400px]">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col md:min-h-[400px]">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Fixed Bills</h3>
-              <button onClick={() => setShowBillForm(true)} className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center">
+              <button onClick={() => setShowBillForm(true)} className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center whitespace-nowrap text-sm">
                 <Plus className="h-4 w-4 mr-2" /> Add Bill
               </button>
             </div>
 
             {showBillForm && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 w-96">
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 w-full max-w-md">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{editingBill ? 'Edit Bill' : 'Add Bill'}</h3>
                     <button onClick={() => {setShowBillForm(false); setEditingBill(null)}}><X className="h-5 w-5 text-gray-500" /></button>
@@ -2526,18 +2526,18 @@ const SalaryPlanner: React.FC = () => {
               </div>
             )}
 
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+            <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
               {fixedBills.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">No bills added yet</div>
               ) : (
                 fixedBills.map(bill => (
                   <div key={bill._id} className={`p-4 border rounded-lg ${bill.status === 'paid' ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-700' : 'bg-yellow-50 border-yellow-200 dark:bg-amber-900/25 dark:border-amber-700'}`}>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{bill.name}</h4>
+                    <div className="flex justify-between items-start gap-3">
+                      <div className="min-w-0">
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100 break-words">{bill.name}</h4>
                         <p className="text-sm text-gray-600 dark:text-gray-300">{formatCurrency(bill.amount)}</p>
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-1 sm:space-x-2 shrink-0">
                         <button onClick={() => { setEditingBill(bill); setShowBillForm(true); }} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"><Edit2 className="h-4 w-4" /></button>
                         <button onClick={() => toggleBillStatus(bill._id)} className="p-2 rounded text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"><Check className="h-4 w-4" /></button>
                         <button onClick={() => deleteBill(bill._id)} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"><Trash2 className="h-4 w-4" /></button>
@@ -2554,7 +2554,7 @@ const SalaryPlanner: React.FC = () => {
           </div>
 
           {/* Variable Expenses Section */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 h-full flex flex-col min-h-[400px]">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col md:min-h-[400px]">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Variable Expenses</h3>
             <div className="space-y-4 flex-1">
               <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
@@ -2573,7 +2573,7 @@ const SalaryPlanner: React.FC = () => {
           </div>
 
           {/* Safe Spending Meter */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 h-full flex flex-col">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Safe Spending Meter</h3>
             <div className="text-center flex-1">
               <div className="mb-4">
@@ -2596,19 +2596,19 @@ const SalaryPlanner: React.FC = () => {
           </div>
 
           {/* Subscriptions Row */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 h-full flex flex-col">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Subscriptions</h3>
-              <button onClick={() => setShowSubscriptionForm(true)} className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center">
+              <button onClick={() => setShowSubscriptionForm(true)} className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center whitespace-nowrap text-sm">
                 <Plus className="h-4 w-4 mr-2" /> Add
               </button>
             </div>
-            <div className="space-y-3 overflow-y-auto flex-1">
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
               {subscriptions.map(sub => (
                 <div key={sub._id} className="p-3 border rounded-lg bg-purple-50 border-purple-200 dark:bg-violet-900/35 dark:border-violet-700">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm">{sub.name}</h4>
+                  <div className="flex justify-between items-center gap-3">
+                    <div className="min-w-0">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm break-words">{sub.name}</h4>
                       <p className="text-xs text-purple-700 dark:text-violet-300 font-bold">{formatCurrency(sub.monthlyCost)}</p>
                     </div>
                     <button onClick={() => toggleSubscriptionStatus(sub._id)} className="text-purple-700 dark:text-violet-300">
@@ -2627,8 +2627,8 @@ const SalaryPlanner: React.FC = () => {
 
         {/* Savings & Tracker Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl shadow-sm p-6 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl shadow-sm p-4 sm:p-6 flex flex-col">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <h3 className="text-lg font-semibold flex items-center"><TrendingUp className="h-6 w-6 mr-2" /> Monthly Savings</h3>
               <div className="flex space-x-2">
                 <button onClick={() => { const a = prompt('Amount:'); if(a) addManualSavings(parseFloat(a)) }} className="px-2 py-1 bg-white/20 rounded text-xs">Add</button>
@@ -2636,18 +2636,18 @@ const SalaryPlanner: React.FC = () => {
               </div>
             </div>
             <div className="text-center flex-1">
-              <div className="text-4xl font-bold mb-2">{formatCurrency(manualSavings)}</div>
+              <div className="text-3xl sm:text-4xl font-bold mb-2 break-words">{formatCurrency(manualSavings)}</div>
               <p className="text-blue-100 text-sm">Tracked this month</p>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl shadow-sm p-6 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-xl shadow-sm p-4 sm:p-6 flex flex-col">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <h3 className="text-lg font-semibold flex items-center"><PiggyBank className="h-6 w-6 mr-2" /> Total Savings</h3>
               <div className="flex items-center"><Flame className="h-4 w-4 mr-1" /> <span>{cumulativeSavings.currentStreak}mo streak</span></div>
             </div>
             <div className="text-center flex-1">
-              <div className="text-4xl font-bold mb-2">{formatCurrency(cumulativeSavings.totalSaved + manualSavings)}</div>
+              <div className="text-3xl sm:text-4xl font-bold mb-2 break-words">{formatCurrency(cumulativeSavings.totalSaved + manualSavings)}</div>
               <p className="text-emerald-100 text-sm">Portfolio Value</p>
             </div>
           </div>
@@ -2656,8 +2656,8 @@ const SalaryPlanner: React.FC = () => {
 
       {/* Forms for Goals and Subscriptions remain structurally the same as Bills modal example */}
       {showGoalForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 w-96">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 w-full max-w-md">
              <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Add Savings Goal</h3>
                 <button onClick={() => setShowGoalForm(false)}><X className="h-5 w-5 text-gray-500" /></button>

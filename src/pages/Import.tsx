@@ -868,20 +868,20 @@ const Import: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 p-4 sm:p-6">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start lg:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Import Transactions</h1>
-              <p className="text-gray-600">Import your transaction data from CSV files</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Import Transactions</h1>
+              <p className="text-gray-600 dark:text-gray-300">Import your transaction data from CSV files</p>
             </div>
-            <div className="flex gap-3">
+            <div className="w-full sm:w-auto flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button
                 onClick={() => setShowHistory(!showHistory)}
-                className={`flex items-center px-4 py-2 rounded-lg transition-colors ${showHistory
+                className={`flex items-center justify-center px-4 py-2 rounded-lg transition-colors ${showHistory
                   ? 'bg-blue-100 text-blue-700 border border-blue-200'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                  : 'bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800'
                   }`}
               >
                 <History className="h-4 w-4 mr-2" />
@@ -891,7 +891,7 @@ const Import: React.FC = () => {
               {hasSavedState && (
                 <button
                   onClick={clearSavedState}
-                  className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                  className="flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                 >
                   <RotateCcw className="h-4 w-4 mr-2" />
                   Clear Saved State
@@ -902,8 +902,8 @@ const Import: React.FC = () => {
 
           {hasSavedState && (
             <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start sm:items-center">
                   <AlertCircle className="h-5 w-5 text-blue-600 mr-2" />
                   <p className="text-sm text-blue-800">
                     You have a previous import session saved. Upload the same CSV file to continue where you left off.
@@ -921,11 +921,11 @@ const Import: React.FC = () => {
         </div>
 
         {showHistory && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8">
-            <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-gray-200 dark:border-slate-700 overflow-hidden mb-8">
+            <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-slate-700 flex justify-between items-start sm:items-center gap-3 bg-gray-50 dark:bg-slate-800">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Import History</h2>
-                <p className="text-sm text-gray-500">Track your past CSV imports</p>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Import History</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Track your past CSV imports</p>
               </div>
               <button
                 onClick={fetchHistory}
@@ -948,8 +948,8 @@ const Import: React.FC = () => {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-[720px] w-full divide-y divide-gray-200 dark:divide-slate-700">
+                  <thead className="bg-gray-50 dark:bg-slate-800">
                     <tr>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
@@ -959,16 +959,16 @@ const Import: React.FC = () => {
                       <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Errors</th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-700">
                     {historyData.map((item) => (
-                      <tr key={item._id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      <tr key={item._id} className="hover:bg-gray-50 dark:hover:bg-slate-800">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 text-gray-400 mr-2" />
                             {formatDateTime(item.importDate)}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
                           {item.fileName}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -979,7 +979,7 @@ const Import: React.FC = () => {
                             {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-400">
                           {item.summary?.totalRows || 0}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-medium">
@@ -994,10 +994,10 @@ const Import: React.FC = () => {
                 </table>
               </div>
             )}
-            <div className="p-4 border-t border-gray-200 flex justify-end">
+            <div className="p-4 border-t border-gray-200 dark:border-slate-700 flex justify-end">
               <button
                 onClick={() => setShowHistory(false)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                className="w-full sm:w-auto px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
               >
                 Close
               </button>
@@ -1007,25 +1007,27 @@ const Import: React.FC = () => {
 
         {!showHistory && (
           <>
-            <div className="flex items-center space-x-2">
-              <div className={`flex items-center ${importStep >= 1 ? 'text-blue-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>1</div>
-                <span className="ml-2 font-medium">Upload</span>
+            <div className="overflow-x-auto pb-2">
+              <div className="w-max min-w-full flex items-center space-x-2 pr-2">
+              <div className={`flex items-center ${importStep >= 1 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'}`}>1</div>
+                <span className="ml-2 font-medium whitespace-nowrap">Upload</span>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-400" />
-              <div className={`flex items-center ${importStep >= 2 ? 'text-blue-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>2</div>
-                <span className="ml-2 font-medium">Map Columns</span>
+              <div className={`flex items-center ${importStep >= 2 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'}`}>2</div>
+                <span className="ml-2 font-medium whitespace-nowrap">Map Columns</span>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-400" />
-              <div className={`flex items-center ${importStep >= 3 ? 'text-blue-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>3</div>
-                <span className="ml-2 font-medium">Validate</span>
+              <div className={`flex items-center ${importStep >= 3 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'}`}>3</div>
+                <span className="ml-2 font-medium whitespace-nowrap">Validate</span>
               </div>
               <ArrowRight className="w-4 h-4 text-gray-400" />
-              <div className={`flex items-center ${importStep >= 4 ? 'text-blue-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 4 ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}>4</div>
-                <span className="ml-2 font-medium">Import</span>
+              <div className={`flex items-center ${importStep >= 4 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 4 ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'}`}>4</div>
+                <span className="ml-2 font-medium whitespace-nowrap">Import</span>
+              </div>
               </div>
             </div>
           </>
@@ -1034,15 +1036,15 @@ const Import: React.FC = () => {
 
       {!showHistory && importStep === 1 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Upload CSV File</h2>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Upload CSV File</h2>
+            <div className="border-2 border-dashed border-gray-300 dark:border-slate-600 rounded-lg p-6 text-center">
               <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
               <label className="cursor-pointer">
-                <span className="text-lg font-medium text-gray-900">Choose a file or drag it here</span>
+                <span className="text-lg font-medium text-gray-900 dark:text-gray-100">Choose a file or drag it here</span>
                 <input type="file" accept=".csv" onChange={handleFileChange} disabled={uploading} className="hidden" />
               </label>
-              <p className="text-sm text-gray-500 mt-2">CSV files only (MAX. 10MB)</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">CSV files only (MAX. 10MB)</p>
             </div>
             {file && (
               <div className="mt-4 p-4 bg-blue-50 rounded-lg">
@@ -1067,17 +1069,17 @@ const Import: React.FC = () => {
 
       {!showHistory && importStep === 2 && preview && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Map Your Columns</h2>
-            <p className="text-sm text-gray-600 mb-6">Match your CSV columns to the transaction fields below.</p>
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Map Your Columns</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-6">Match your CSV columns to the transaction fields below.</p>
             <div className="space-y-4">
               {(['date', 'amount', 'type', 'category', 'description'] as const).map((field) => (
                 <div key={field}>
-                  <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">{field} Column {field === 'date' || field === 'amount' ? '*' : ''}</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 capitalize">{field} Column {field === 'date' || field === 'amount' ? '*' : ''}</label>
                   <select
                     value={columnMapping[field] || ''}
                     onChange={(e) => handleMappingChange(field, e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Select {field} column...</option>
                     {preview.headers.map(header => (
@@ -1087,41 +1089,41 @@ const Import: React.FC = () => {
                 </div>
               ))}
             </div>
-            <div className="mt-6 flex gap-4">
-              <button onClick={resetImport} className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700">Start Over</button>
+            <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <button onClick={resetImport} className="w-full sm:flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 border border-transparent dark:border-slate-500">Start Over</button>
               <button
                 onClick={handleDryRun}
                 disabled={!columnMapping.date || !columnMapping.amount || uploading}
-                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
+                className="w-full sm:flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark disabled:bg-gray-500"
               >
                 {uploading ? 'Validating...' : <><Eye className="h-4 w-4 mr-2 inline" /> Validate Only</>}
               </button>
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-semibold text-gray-900">Preview</h2>
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Preview</h2>
               {preview?.pagination && (
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-600 dark:text-gray-300">
                   Showing {((preview.pagination.page - 1) * preview.pagination.limit) + 1} to {Math.min(preview.pagination.page * preview.pagination.limit, preview.pagination.totalRows)} of {preview.pagination.totalRows} rows
                 </div>
               )}
             </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-[640px] w-full divide-y divide-gray-200 dark:divide-slate-700">
+                <thead className="bg-gray-50 dark:bg-slate-800">
                   <tr>
                     {preview.headers.map((header, index) => (
-                      <th key={index} className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{header}</th>
+                      <th key={index} className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">{header}</th>
                     ))}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-700">
                   {preview.data.map((row, rowIndex) => (
-                    <tr key={rowIndex} className="hover:bg-gray-50">
+                    <tr key={rowIndex} className="hover:bg-gray-50 dark:hover:bg-slate-800">
                       {preview.headers.map((header, colIndex) => (
-                        <td key={colIndex} className="px-3 py-2 whitespace-nowrap text-xs text-gray-900">{row[header] || '-'}</td>
+                        <td key={colIndex} className="px-3 py-2 whitespace-nowrap text-xs text-gray-900 dark:text-gray-100">{row[header] || '-'}</td>
                       ))}
                     </tr>
                   ))}
@@ -1134,48 +1136,49 @@ const Import: React.FC = () => {
 
       {!showHistory && importStep === 3 && dryRunResult && (
         <div className="space-y-6 mt-8">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Validation Results</h2>
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Validation Results</h2>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <p className="text-2xl font-bold text-blue-900">{dryRunResult.summary.totalRows}</p>
-                <p className="text-sm text-blue-700">Total Rows</p>
+              <div className="text-center p-4 bg-primary-bg dark:bg-slate-800 border border-primary rounded-lg">
+                <FileText className="h-8 w-8 text-primary dark:text-primary-light mx-auto mb-2" />
+                <p className="text-2xl font-bold text-primary-dark dark:text-primary-light">{dryRunResult.summary.totalRows}</p>
+                <p className="text-sm text-primary dark:text-primary-light">Total Rows</p>
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <CheckCircle className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-green-900">{dryRunResult.summary.validRows}</p>
-                <p className="text-sm text-green-700">Will Succeed</p>
+              <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <CheckCircle className="h-8 w-8 text-green-600 dark:text-green-400 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-green-900 dark:text-green-300">{dryRunResult.summary.validRows}</p>
+                <p className="text-sm text-green-700 dark:text-green-400">Will Succeed</p>
               </div>
-              <div className="text-center p-4 bg-red-50 rounded-lg">
-                <AlertCircle className="h-8 w-8 text-red-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-red-900">{dryRunResult.summary.errorRows}</p>
-                <p className="text-sm text-red-700">Will Fail</p>
+              <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <AlertCircle className="h-8 w-8 text-red-600 dark:text-red-400 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-red-900 dark:text-red-300">{dryRunResult.summary.errorRows}</p>
+                <p className="text-sm text-red-700 dark:text-red-400">Will Fail</p>
               </div>
-              <div className="text-center p-4 bg-yellow-50 rounded-lg">
-                <Database className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-yellow-900">{dryRunResult.summary.duplicateRows}</p>
-                <p className="text-sm text-yellow-700">Duplicates</p>
+              <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <Database className="h-8 w-8 text-yellow-600 dark:text-yellow-400 mx-auto mb-2" />
+                <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-300">{dryRunResult.summary.duplicateRows}</p>
+                <p className="text-sm text-yellow-700 dark:text-yellow-400">Duplicates</p>
               </div>
             </div>
 
             {dryRunResult.validation.validTransactions.length > 0 && (
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-900 mb-2">Preview valid rows:</h3>
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4 max-h-60 overflow-y-auto">
-                  <table className="min-w-full divide-y divide-green-200">
-                    <thead className="bg-green-100">
+                <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Preview valid rows:</h3>
+                <div className="bg-green-50 dark:bg-slate-800 border border-green-200 dark:border-green-800 rounded-lg p-4 max-h-60 overflow-y-auto">
+                  <table className="min-w-full divide-y divide-green-200 dark:divide-slate-700">
+                    <thead className="bg-green-100 dark:bg-slate-700">
                       <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-green-700 uppercase">Date</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-green-700 uppercase">Description</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-green-700 uppercase">Amount</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-green-700 dark:text-green-300 uppercase">Date</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-green-700 dark:text-green-300 uppercase">Description</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-green-700 dark:text-green-300 uppercase">Amount</th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-green-200">
+                    <tbody className="bg-white dark:bg-slate-900 divide-y divide-green-200 dark:divide-slate-700">
                       {dryRunResult.validation.validTransactions.map((t, i) => (
                         <tr key={i}>
-                          <td className="px-3 py-2 text-xs">{formatDate(t.date)}</td>
-                          <td className="px-3 py-2 text-xs">{t.description}</td>
-                          <td className="px-3 py-2 text-xs">{formatAmount(t.amount)}</td>
+                          <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100">{formatDate(t.date)}</td>
+                          <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100">{t.description}</td>
+                          <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100">{formatAmount(t.amount)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1184,12 +1187,12 @@ const Import: React.FC = () => {
               </div>
             )}
 
-            <div className="flex gap-4">
-              <button onClick={() => setImportStep(2)} className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg"><ArrowLeft className="h-4 w-4 inline mr-2" /> Back</button>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <button onClick={() => setImportStep(2)} className="w-full sm:flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg"><ArrowLeft className="h-4 w-4 inline mr-2" /> Back</button>
               <button
                 onClick={handleImport}
                 disabled={dryRunResult.summary.validRows === 0 || uploading}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
+                className="w-full sm:flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
               >
                 {uploading ? 'Importing...' : <><Play className="h-4 w-4 mr-2 inline" /> Commit Import ({dryRunResult.summary.validRows} rows)</>}
               </button>
@@ -1199,29 +1202,30 @@ const Import: React.FC = () => {
       )}
 
       {!showHistory && importStep === 4 && importResult && (
-        <div className="bg-white p-6 rounded-lg shadow mt-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Import Complete!</h2>
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow mt-8">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Import Complete!</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <p className="text-2xl font-bold text-blue-900">{importResult.summary.totalRows}</p>
-              <p className="text-sm text-blue-700">Total Rows</p>
+            <div className="text-center p-4 bg-primary-bg dark:bg-slate-800 border border-primary rounded-lg">
+              <FileText className="h-8 w-8 text-primary dark:text-primary-light mx-auto mb-2" />
+              <p className="text-2xl font-bold text-primary-dark dark:text-primary-light">{importResult.summary.totalRows}</p>
+              <p className="text-sm text-primary dark:text-primary-light">Total Rows</p>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
-              <p className="text-2xl font-bold text-green-900">{importResult.summary.insertedRows}</p>
-              <p className="text-sm text-green-700">Imported</p>
+            <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+              <p className="text-2xl font-bold text-green-900 dark:text-green-300">{importResult.summary.insertedRows}</p>
+              <p className="text-sm text-green-700 dark:text-green-400">Imported</p>
             </div>
-            <div className="text-center p-4 bg-red-50 rounded-lg">
-              <p className="text-2xl font-bold text-red-900">{importResult.summary.skippedRows}</p>
-              <p className="text-sm text-red-700">Skipped</p>
+            <div className="text-center p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+              <p className="text-2xl font-bold text-red-900 dark:text-red-300">{importResult.summary.skippedRows}</p>
+              <p className="text-sm text-red-700 dark:text-red-400">Skipped</p>
             </div>
-            <div className="text-center p-4 bg-yellow-50 rounded-lg">
-              <p className="text-2xl font-bold text-yellow-900">{importResult.summary.errors}</p>
-              <p className="text-sm text-yellow-700">Errors</p>
+            <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+              <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-300">{importResult.summary.errors}</p>
+              <p className="text-sm text-yellow-700 dark:text-yellow-400">Errors</p>
             </div>
           </div>
-          <div className="flex gap-4">
-            <button onClick={() => navigate('/transactions')} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg"><ArrowRight className="h-4 w-4 mr-2 inline" /> View Transactions</button>
-            <button onClick={resetImport} className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg">Import Another File</button>
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            <button onClick={() => navigate('/transactions')} className="w-full sm:flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg"><ArrowRight className="h-4 w-4 mr-2 inline" /> View Transactions</button>
+            <button onClick={resetImport} className="w-full sm:flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg">Import Another File</button>
           </div>
         </div>
       )}

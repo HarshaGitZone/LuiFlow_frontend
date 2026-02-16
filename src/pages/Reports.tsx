@@ -380,20 +380,20 @@ const RANGE_OPTIONS = [
   { value: 'custom', label: 'Custom Date Range' }
 ]
 
-const MONTH_OPTIONS = [
-  { value: '01', label: 'January' },
-  { value: '02', label: 'February' },
-  { value: '03', label: 'March' },
-  { value: '04', label: 'April' },
-  { value: '05', label: 'May' },
-  { value: '06', label: 'June' },
-  { value: '07', label: 'July' },
-  { value: '08', label: 'August' },
-  { value: '09', label: 'September' },
-  { value: '10', label: 'October' },
-  { value: '11', label: 'November' },
-  { value: '12', label: 'December' }
-]
+// const MONTH_OPTIONS = [
+//   { value: '01', label: 'January' },
+//   { value: '02', label: 'February' },
+//   { value: '03', label: 'March' },
+//   { value: '04', label: 'April' },
+//   { value: '05', label: 'May' },
+//   { value: '06', label: 'June' },
+//   { value: '07', label: 'July' },
+//   { value: '08', label: 'August' },
+//   { value: '09', label: 'September' },
+//   { value: '10', label: 'October' },
+//   { value: '11', label: 'November' },
+//   { value: '12', label: 'December' }
+// ]
 
 const toDateInputValue = (date: Date): string => {
   const year = date.getFullYear()
@@ -469,8 +469,8 @@ const Reports: React.FC = () => {
   const { formatDate } = useDateFormatter()
   const [selectedRange, setSelectedRange] = useState<string>('current-month')
   const [selectedMonth, setSelectedMonth] = useState<string>(toMonthInputValue(new Date()))
-  const [manualMonth, setManualMonth] = useState<string>(`${new Date().getMonth() + 1}`.padStart(2, '0'))
-  const [manualYear, setManualYear] = useState<string>(String(new Date().getFullYear()))
+  //const [manualMonth, setManualMonth] = useState<string>(`${new Date().getMonth() + 1}`.padStart(2, '0'))
+  //const [manualYear, setManualYear] = useState<string>(String(new Date().getFullYear()))
   const [customStart, setCustomStart] = useState<string>(toDateInputValue(new Date(new Date().getFullYear(), new Date().getMonth(), 1)))
   const [customEnd, setCustomEnd] = useState<string>(toDateInputValue(new Date()))
   const [loading, setLoading] = useState<boolean>(false)
@@ -698,19 +698,19 @@ const Reports: React.FC = () => {
     URL.revokeObjectURL(url)
   }
 
-  const availableYears = useMemo(() => {
-    const currentYear = new Date().getFullYear()
-    const years = []
-    for (let year = currentYear; year >= currentYear - 10; year -= 1) {
-      years.push(String(year))
-    }
-    return years
-  }, [])
+  // const availableYears = useMemo(() => {
+  //   const currentYear = new Date().getFullYear()
+  //   const years = []
+  //   for (let year = currentYear; year >= currentYear - 10; year -= 1) {
+  //     years.push(String(year))
+  //   }
+  //   return years
+  // }, [])
 
-  const handleApplyManualMonthYear = () => {
-    setSelectedRange('selected-month')
-    setSelectedMonth(`${manualYear}-${manualMonth}`)
-  }
+  // const handleApplyManualMonthYear = () => {
+  //   setSelectedRange('selected-month')
+  //   setSelectedMonth(`${manualYear}-${manualMonth}`)
+  // }
 
   return (
     <div className="space-y-6">
@@ -721,31 +721,31 @@ const Reports: React.FC = () => {
             Generate downloadable reports from live transactions, budgets, and debt data.
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
           <button
             onClick={fetchReportData}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800"
+            className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800"
           >
             <RefreshCcw className="h-4 w-4" />
             Refresh
           </button>
           <button
             onClick={handleDownloadCsv}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white"
           >
             <Download className="h-4 w-4" />
             Download CSV
           </button>
           <button
             onClick={handleDownloadJson}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white"
           >
             <FileJson className="h-4 w-4" />
             Download JSON
           </button>
           <button
             onClick={() => window.print()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-800 text-white"
+            className="w-full sm:w-auto inline-flex justify-center items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-800 text-white"
           >
             <Printer className="h-4 w-4" />
             Print
@@ -753,7 +753,7 @@ const Reports: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 p-4 rounded-lg shadow border border-gray-200 dark:border-slate-700">
+      {/* <div className="bg-white dark:bg-slate-900 p-4 rounded-lg shadow border border-gray-200 dark:border-slate-700">
         <div className="flex flex-col xl:flex-row gap-3 xl:items-end">
           <div>
             <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Manual Month Report</p>
@@ -794,11 +794,11 @@ const Reports: React.FC = () => {
             Generate Month Report
           </button>
         </div>
-      </div>
+      </div> */}
 
       <div className="bg-white dark:bg-slate-900 p-4 rounded-lg shadow border border-gray-200 dark:border-slate-700">
-        <div className="flex flex-col xl:flex-row gap-4 xl:items-end">
-          <div className="w-full xl:w-72">
+        <div className="flex flex-col lg:flex-row gap-4 lg:items-end">
+          <div className="w-full lg:max-w-xs">
             <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Report Range</label>
             <select
               value={selectedRange}
@@ -814,7 +814,7 @@ const Reports: React.FC = () => {
           </div>
 
           {selectedRange === 'selected-month' && (
-            <div className="w-full xl:w-56">
+            <div className="w-full lg:max-w-xs">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Month</label>
               <input
                 type="month"
@@ -827,7 +827,7 @@ const Reports: React.FC = () => {
 
           {selectedRange === 'custom' && (
             <>
-              <div className="w-full xl:w-56">
+              <div className="w-full lg:max-w-xs">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Start Date</label>
                 <input
                   type="date"
@@ -836,7 +836,7 @@ const Reports: React.FC = () => {
                   className="mt-1 w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100"
                 />
               </div>
-              <div className="w-full xl:w-56">
+              <div className="w-full lg:max-w-xs">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">End Date</label>
                 <input
                   type="date"
@@ -848,7 +848,7 @@ const Reports: React.FC = () => {
             </>
           )}
 
-          <div className="inline-flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm text-slate-700 dark:text-slate-200">
+          <div className="w-full sm:w-auto inline-flex items-center justify-center sm:justify-start gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-sm text-slate-700 dark:text-slate-200">
             <CalendarDays className="h-4 w-4" />
             {activeRange.label}
           </div>
@@ -886,19 +886,19 @@ const Reports: React.FC = () => {
         <div className="p-4 rounded-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Budgets Snapshot</h2>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-gray-700 dark:text-gray-300"><span>Total Budgeted</span><span>{formatAmount(summary.budgeted)}</span></div>
-            <div className="flex justify-between text-gray-700 dark:text-gray-300"><span>Total Spent</span><span>{formatAmount(summary.budgetSpent)}</span></div>
-            <div className="flex justify-between text-gray-700 dark:text-gray-300"><span>Remaining</span><span>{formatAmount(summary.budgetRemaining)}</span></div>
-            <div className="flex justify-between text-gray-700 dark:text-gray-300"><span>Budget Items</span><span>{budgets.length}</span></div>
+            <div className="flex items-center justify-between gap-3 text-gray-700 dark:text-gray-300"><span>Total Budgeted</span><span className="text-right">{formatAmount(summary.budgeted)}</span></div>
+            <div className="flex items-center justify-between gap-3 text-gray-700 dark:text-gray-300"><span>Total Spent</span><span className="text-right">{formatAmount(summary.budgetSpent)}</span></div>
+            <div className="flex items-center justify-between gap-3 text-gray-700 dark:text-gray-300"><span>Remaining</span><span className="text-right">{formatAmount(summary.budgetRemaining)}</span></div>
+            <div className="flex items-center justify-between gap-3 text-gray-700 dark:text-gray-300"><span>Budget Items</span><span className="text-right">{budgets.length}</span></div>
           </div>
         </div>
         <div className="p-4 rounded-lg bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 shadow">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">Debt Snapshot</h2>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-gray-700 dark:text-gray-300"><span>Outstanding Debt</span><span>{formatAmount(debtSummary.totalOutstandingDebt || 0)}</span></div>
-            <div className="flex justify-between text-gray-700 dark:text-gray-300"><span>Interest Accrued</span><span>{formatAmount(debtSummary.totalInterestAccrued || 0)}</span></div>
-            <div className="flex justify-between text-gray-700 dark:text-gray-300"><span>Total Paid So Far</span><span>{formatAmount(debtSummary.totalPaidSoFar || 0)}</span></div>
-            <div className="flex justify-between text-gray-700 dark:text-gray-300"><span>Active Debts</span><span>{debtSummary.activeDebtsCount || 0}/{debtSummary.totalDebtsCount || 0}</span></div>
+            <div className="flex items-center justify-between gap-3 text-gray-700 dark:text-gray-300"><span>Outstanding Debt</span><span className="text-right">{formatAmount(debtSummary.totalOutstandingDebt || 0)}</span></div>
+            <div className="flex items-center justify-between gap-3 text-gray-700 dark:text-gray-300"><span>Interest Accrued</span><span className="text-right">{formatAmount(debtSummary.totalInterestAccrued || 0)}</span></div>
+            <div className="flex items-center justify-between gap-3 text-gray-700 dark:text-gray-300"><span>Total Paid So Far</span><span className="text-right">{formatAmount(debtSummary.totalPaidSoFar || 0)}</span></div>
+            <div className="flex items-center justify-between gap-3 text-gray-700 dark:text-gray-300"><span>Active Debts</span><span className="text-right">{debtSummary.activeDebtsCount || 0}/{debtSummary.totalDebtsCount || 0}</span></div>
           </div>
         </div>
       </div>
@@ -910,9 +910,9 @@ const Reports: React.FC = () => {
         ) : (
           <div className="space-y-2">
             {topExpenseCategories.map(([category, total]) => (
-              <div key={category} className="flex items-center justify-between text-sm">
+              <div key={category} className="flex items-center justify-between gap-3 text-sm">
                 <span className="text-gray-700 dark:text-gray-300">{category}</span>
-                <span className="font-medium text-gray-900 dark:text-gray-100">{formatAmount(total)}</span>
+                <span className="font-medium text-gray-900 dark:text-gray-100 text-right">{formatAmount(total)}</span>
               </div>
             ))}
           </div>
@@ -927,7 +927,7 @@ const Reports: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-slate-700">
+            <table className="min-w-[680px] w-full divide-y divide-gray-200 dark:divide-slate-700">
               <thead className="bg-gray-50 dark:bg-slate-800">
                 <tr>
                   <th className="px-4 py-2 text-left text-xs font-semibold uppercase text-gray-500 dark:text-gray-400">Date</th>

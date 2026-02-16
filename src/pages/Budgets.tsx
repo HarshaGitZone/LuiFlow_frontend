@@ -880,14 +880,14 @@ const Budgets: React.FC = () => {
     }
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-fade-in backdrop-blur-sm bg-slate-900/50">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 animate-fade-in backdrop-blur-sm bg-slate-900/50">
         <div className="absolute inset-0 bg-black/60" onClick={onClose} />
 
-        <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
           {/* Header */}
-          <div className="px-8 py-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 sticky top-0 z-10">
+          <div className="px-4 sm:px-8 py-4 sm:py-6 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 sticky top-0 z-10">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 {isEdit ? 'Edit Budget' : 'Create New Budget'}
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -903,7 +903,7 @@ const Budgets: React.FC = () => {
           </div>
 
           {/* Body */}
-          <div className="p-8 overflow-y-auto custom-scrollbar">
+          <div className="p-4 sm:p-8 overflow-y-auto custom-scrollbar">
             {formErrors.general && (
               <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 flex items-center gap-3">
                 <AlertCircle className="h-5 w-5 flex-shrink-0" />
@@ -1008,7 +1008,7 @@ const Budgets: React.FC = () => {
           </div>
 
           {/* Footer */}
-          <div className="px-8 py-6 border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/50 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sticky bottom-0 z-10">
+          <div className="px-4 sm:px-8 py-4 sm:py-6 border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-900/50 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 sticky bottom-0 z-10">
             <button
               onClick={onClose}
               className="px-6 py-3 rounded-xl border border-gray-300 dark:border-slate-600 text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors focus:ring-2 focus:ring-offset-2 focus:ring-gray-300"
@@ -1028,13 +1028,13 @@ const Budgets: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 dark:bg-slate-900 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-50/50 dark:bg-slate-900 p-3 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
 
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Budget Management</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Budget Management</h1>
             <p className="text-gray-500 dark:text-gray-400 mt-1">Track, manage and optimize your spending</p>
           </div>
           <button
@@ -1042,7 +1042,7 @@ const Budgets: React.FC = () => {
               setFormErrors({})
               setShowAddModal(true)
             }}
-            className="inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-0.5 font-medium group"
+            className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-lg shadow-blue-500/30 transition-all transform hover:-translate-y-0.5 font-medium group"
           >
             <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform" />
             Create New Budget
@@ -1050,7 +1050,7 @@ const Budgets: React.FC = () => {
         </div>
 
         {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
               <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
@@ -1131,13 +1131,13 @@ const Budgets: React.FC = () => {
 
         {/* Budgets Grid */}
         <div className="space-y-6">
-          <div className="flex items-center justify-between px-1">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-1">
             <h2 className="text-xl font-bold text-gray-900 dark:text-white">Your Budgets</h2>
             <span className="text-sm text-gray-500 dark:text-gray-400">{budgets.length} budget{budgets.length !== 1 && 's'} active</span>
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {[1, 2, 3].map(i => (
                 <div key={i} className="h-64 bg-gray-100 dark:bg-slate-800 rounded-2xl animate-pulse" />
               ))}
@@ -1163,7 +1163,7 @@ const Budgets: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {budgets.map((budget) => {
                 const amount = Number(budget.amount) || 0
                 const spent = Number(budget.spent) || 0
@@ -1175,7 +1175,7 @@ const Budgets: React.FC = () => {
                 return (
                   <div
                     key={budget._id}
-                    className="group bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden"
+                    className="group bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-slate-700 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden"
                   >
                     {/* Decorative gradient background */}
                     <div className="absolute top-0 right-0 -mt-16 -mr-16 w-32 h-32 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-3xl group-hover:from-blue-500/20 group-hover:to-purple-500/20 transition-all" />
@@ -1186,7 +1186,7 @@ const Budgets: React.FC = () => {
                           <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold ${statusColorClass} mb-3`}>
                             {getStatusLabel(status)}
                           </span>
-                          <h3 className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-words">
                             {budget.name}
                           </h3>
                           <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -1196,7 +1196,7 @@ const Budgets: React.FC = () => {
                           </div>
                         </div>
 
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity transform translate-x-2 group-hover:translate-x-0">
+                        <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity transform sm:translate-x-2 sm:group-hover:translate-x-0">
                           <button
                             onClick={() => handleOpenEdit(budget)}
                             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 text-gray-400 hover:text-blue-600 transition-colors"
@@ -1215,7 +1215,7 @@ const Budgets: React.FC = () => {
                       </div>
 
                       <div className="space-y-4">
-                        <div className="flex justify-between items-end">
+                        <div className="flex flex-wrap justify-between items-end gap-3">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">Spent</p>
                             <p className="text-2xl font-bold text-gray-900 dark:text-white">
