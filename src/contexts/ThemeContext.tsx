@@ -1,22 +1,26 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react'
 
 interface ColorPalette {
-  name: string;
-  primary: string;
-  primaryDark: string;
-  primaryLight: string;
-  primaryBg: string;
-  primaryBgDark: string;
+  name: string
+  primary: string
+  primaryDark: string
+  primaryLight: string
+  primaryBg: string
+  primaryBgDark: string
 }
 
 interface ThemeContextType {
-  theme: 'light' | 'dark';
-  isDark: boolean;
-  setTheme: (theme: 'light' | 'dark') => void;
-  toggleTheme: () => void;
-  colorPalette: string;
-  setColorPalette: (palette: string) => void;
-  availableColors: Record<string, ColorPalette>;
+  theme: 'light' | 'dark'
+  isDark: boolean
+  setTheme: (theme: 'light' | 'dark') => void
+  toggleTheme: () => void
+  colorPalette: string
+  setColorPalette: (palette: string) => void
+  availableColors: Record<string, ColorPalette>
+}
+
+interface ThemeProviderProps {
+  children: ReactNode
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
@@ -128,10 +132,6 @@ const colorPalettes: Record<string, ColorPalette> = {
   }
 }
 
-interface ThemeProviderProps {
-  children: ReactNode;
-}
-
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const storedTheme = localStorage.getItem('theme')
@@ -164,7 +164,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     localStorage.setItem('colorPalette', colorPalette)
   }, [colorPalette])
 
-  const value: ThemeContextType = useMemo(() => {
+  const value = useMemo(() => {
     return {
       theme,
       isDark: theme === 'dark',

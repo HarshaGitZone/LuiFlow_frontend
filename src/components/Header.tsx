@@ -1,18 +1,39 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
 import { useCurrency } from '../contexts/CurrencyContext'
+import ColorPalette from './ColorPalette'
+import { api } from '../api'
 import {
   Search,
   Bell,
   User,
   Settings,
   LogOut,
+  Menu,
   Sun,
   Moon,
+  TrendingUp,
+  TrendingDown,
   Wallet
 } from 'lucide-react'
+
+interface QuickStats {
+  todayExpense: number
+  todayIncome: number
+  weekExpense: number
+  weekIncome: number
+}
+
+interface Notification {
+  id: string
+  text: string
+  time: string
+  type: 'budget' | 'bill'
+  severity: 'critical' | 'warning' | 'info'
+  sortWeight: number
+}
 
 const Header: React.FC = () => {
   const { user, logout } = useAuth()
@@ -20,187 +41,361 @@ const Header: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [showNotifications, setShowNotifications] = useState(false)
   const [showProfile, setShowProfile] = useState(false)
-  const [showColorPalette, setShowColorPalette] = useState(false)
-  const { isDark, toggleTheme, availableColors, colorPalette, setColorPalette } = useTheme()
+  const { isDark, toggleTheme } = useTheme()
   const { formatAmount } = useCurrency()
-  const [notifications] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [notificationsLoading, setNotificationsLoading] = useState(false)
+  const [notificationsError, setNotificationsError] = useState('')
+  const [quickStats, setQuickStats] = useState<QuickStats>({
+    todayExpense: 0,
+    todayIncome: 0,
+    weekExpense: 0,
+    weekIncome: 0
+  })
 
-  const handleLogout = (): void => {
+  useEffect(() => {
+    // Fetch quick stats for the header
+    const fetchQuickStats = async () => {
+      try {
+        // This would be an actual API call
+        // const response = await api.get('/transactions/quick-stats')
+        // setQuickStats(response.data)
+
+        // Mock data for now
+        setQuickStats({
+          todayExpense: 1250,
+          todayIncome: 5000,
+          weekExpense: 8500,
+          weekIncome: 15000
+        })
+      } catch (error) {
+        console.error('Failed to fetch quick stats:', error)
+      }
+    }
+
+    if (user) {
+      fetchQuickStats()
+    }
+  }, [user])
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      navigate(`/transactions?search=${encodeURIComponent(searchQuery)}`)
+      setSearchQuery('')
+    }
+  }
+
+  const handleLogout = () => {
     logout()
     navigate('/login')
   }
 
-  const handleSearch = (e: React.FormEvent): void => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      navigate(`/transactions?search=${encodeURIComponent(searchQuery.trim())}`)
+  const getBillDueMessage = (dueDay: number, billName: string) => {
+    const todayDay = new Date().getDate()
+    const daysDiff = dueDay - todayDay
+
+    if (daysDiff < 0) {
+      return {
+        text: `${billName} was due on day ${dueDay} (${Math.abs(daysDiff)} day${Math.abs(daysDiff) === 1 ? '' : 's'} overdue)`,
+        severity: 'critical'
+      }
+    }
+
+    if (daysDiff === 0) {
+      return {
+        text: `${billName} is due today`,
+        severity: 'critical'
+      }
+    }
+
+    return {
+      text: `${billName} is due in ${daysDiff} day${daysDiff === 1 ? '' : 's'}`,
+      severity: daysDiff <= 2 ? 'warning' : 'info'
+    }
+  }
+
+  const buildNotifications = (budgets: any[] = [], fixedBills: any[] = []) => {
+    const alerts: Notification[] = []
+
+    budgets.forEach((budget) => {
+      const amount = Number(budget.amount) || 0
+      const spent = Number(budget.spent) || 0
+      const budgetName = budget.name || budget.category || 'Budget'
+
+      if (amount <= 0) return
+
+      const usagePercent = (spent / amount) * 100
+
+      if (spent > amount) {
+        alerts.push({
+          id: `budget-over-${budget._id}`,
+          text: `${budgetName} exceeded by ${formatAmount(spent - amount, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}`,
+          time: 'Just now',
+          type: 'budget',
+          severity: 'critical',
+          sortWeight: 0
+        })
+      } else if (usagePercent >= 80) {
+        alerts.push({
+          id: `budget-near-${budget._id}`,
+          text: `${budgetName} is ${Math.round(usagePercent)}% used`,
+          time: 'Just now',
+          type: 'budget',
+          severity: 'warning',
+          sortWeight: 1
+        })
+      }
+    })
+
+    fixedBills
+      .filter((bill) => bill?.status !== 'paid')
+      .forEach((bill) => {
+        const dueDay = Number.parseInt(bill.dueDate, 10)
+        if (!Number.isInteger(dueDay)) return
+
+        const todayDay = new Date().getDate()
+        const daysDiff = dueDay - todayDay
+
+        if (daysDiff <= 7) {
+          const dueMessage = getBillDueMessage(dueDay, bill.name || 'Bill')
+          alerts.push({
+            id: `bill-due-${bill._id}`,
+            text: dueMessage.text,
+            time: 'This month',
+            type: 'bill',
+            severity: dueMessage.severity as 'critical' | 'warning' | 'info',
+            sortWeight: dueMessage.severity === 'critical' ? 0 : dueMessage.severity === 'warning' ? 1 : 2
+          })
+        }
+      })
+
+    return alerts.sort((a, b) => a.sortWeight - b.sortWeight)
+  }
+
+  const fetchNotifications = async () => {
+    try {
+      setNotificationsLoading(true)
+      setNotificationsError('')
+
+      const month = new Date().toISOString().slice(0, 7)
+      const [budgetsResult, plannerResult] = await Promise.allSettled([
+        api.get('/api/budgets'),
+        api.get(`/api/salary-planner?month=${month}`)
+      ])
+
+      const budgets = budgetsResult.status === 'fulfilled' && Array.isArray(budgetsResult.value.data)
+        ? budgetsResult.value.data
+        : []
+
+      const fixedBills = plannerResult.status === 'fulfilled'
+        ? plannerResult.value.data?.data?.fixedBills || []
+        : []
+
+      if (budgetsResult.status === 'rejected' && plannerResult.status === 'rejected') {
+        setNotificationsError('Failed to load notifications')
+      }
+
+      setNotifications(buildNotifications(budgets, fixedBills))
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error)
+      setNotifications([])
+      setNotificationsError('Failed to load notifications')
+    } finally {
+      setNotificationsLoading(false)
     }
   }
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-20 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-700">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Left side - Logo and Search */}
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center">
-              <Wallet className="h-8 w-8 text-primary dark:text-primary-light" />
-              <span className="ml-2 text-xl font-bold text-gray-900 dark:text-white">LuiFlow</span>
+    <header className="bg-white dark:bg-slate-900 shadow-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-40">
+      <div className="px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
+          {/* Left side - Logo */}
+          <div className="flex-1 flex items-center">
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="bg-blue-600 p-2 rounded-xl group-hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/30">
+                <Wallet className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-400 dark:from-blue-400 dark:to-blue-200">
+                  LuiFlow
+                </span>
+                <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium tracking-wider uppercase leading-none">
+                  Beyond the Budget
+                </span>
+              </div>
             </Link>
-            
-            <form onSubmit={handleSearch} className="ml-8">
+          </div>
+
+          {/* Center - Search Bar (full width after sidebar) */}
+          <div className="flex-1">
+            <form onSubmit={handleSearch} className="w-full max-w-2xl">
               <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                </div>
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search transactions..."
-                  className="w-64 pl-10 pr-4 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary dark:focus:ring-primary-light focus:border-transparent"
+                  className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 dark:border-slate-600 rounded-md leading-5 bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  placeholder="Search transactions, categories..."
                 />
-                <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
               </div>
             </form>
           </div>
 
-          {/* Right side - Color Palette, Notifications, Profile, Theme, Logout */}
+          {/* Right side - Quick Stats and User actions */}
           <div className="flex items-center space-x-4">
-            {/* Color Palette */}
-            <div className="relative">
+            {/* Quick Stats */}
+            <div className="hidden lg:flex items-center space-x-4">
+              <div className="flex items-center space-x-4 text-sm">
+                <div className="flex items-center text-green-600">
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                  <span className="font-medium">Today: </span>
+                  <span>{formatAmount(quickStats.todayIncome, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}</span>
+                </div>
+                <div className="flex items-center text-red-600">
+                  <TrendingDown className="h-4 w-4 mr-1" />
+                  <span className="font-medium">Today: </span>
+                  <span>{formatAmount(quickStats.todayExpense, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* User actions */}
+            <div className="flex items-center space-x-4">
+              {/* Color palette selector */}
+              <ColorPalette />
+
+              {/* Dark mode toggle */}
               <button
-                onClick={() => setShowColorPalette(!showColorPalette)}
-                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
-                title="Color Theme"
+                onClick={toggleTheme}
+                className="p-2 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md"
+                aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
               >
-                <div className="w-5 h-5 rounded-full border-2 border-gray-300 dark:border-slate-600" 
-                     style={{ backgroundColor: availableColors[colorPalette]?.primary || '#3b82f6' }} />
+                {isDark ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
               </button>
-              
-              {showColorPalette && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700">
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Color Theme</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {Object.entries(availableColors).map(([key, palette]) => (
-                        <button
-                          key={key}
-                          onClick={() => {
-                            setColorPalette(key)
-                            setShowColorPalette(false)
-                          }}
-                          className={`p-3 rounded-lg border-2 transition-all ${
-                            colorPalette === key
-                              ? 'border-primary dark:border-primary-light'
-                              : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500'
-                          }`}
-                          title={palette.name}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <div
-                              className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-800"
-                              style={{ backgroundColor: palette.primary }}
-                            />
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                              {palette.name}
-                            </span>
-                          </div>
-                        </button>
+
+              {/* Notifications */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowNotifications((prev) => {
+                      const next = !prev
+                      if (next) {
+                        fetchNotifications()
+                      }
+                      return next
+                    })
+                    setShowProfile(false)
+                  }}
+                  className="p-2 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md relative"
+                >
+                  <Bell className="h-5 w-5" />
+                  {notifications.length > 0 && (
+                    <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
+                  )}
+                </button>
+
+                {showNotifications && (
+                  <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="p-4 border-b border-gray-200 dark:border-slate-700">
+                      <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Notifications</h3>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto">
+                      {notificationsLoading && (
+                        <div className="p-4">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Loading notifications...</p>
+                        </div>
+                      )}
+
+                      {!notificationsLoading && notificationsError && notifications.length === 0 && (
+                        <div className="p-4">
+                          <p className="text-sm text-red-600 dark:text-red-400">{notificationsError}</p>
+                        </div>
+                      )}
+
+                      {!notificationsLoading && !notificationsError && notifications.length === 0 && (
+                        <div className="p-4">
+                          <p className="text-sm text-gray-500 dark:text-gray-400">No active budget or bill alerts.</p>
+                        </div>
+                      )}
+
+                      {!notificationsLoading && notifications.map((notification) => (
+                        <div key={notification.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-800 border-b border-gray-100 dark:border-slate-700">
+                          <p className={`text-sm ${
+                            notification.severity === 'critical'
+                              ? 'text-red-600 dark:text-red-400'
+                              : notification.severity === 'warning'
+                                ? 'text-amber-600 dark:text-amber-400'
+                                : 'text-gray-900 dark:text-gray-100'
+                          }`}>{notification.text}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{notification.time}</p>
+                        </div>
                       ))}
                     </div>
                   </div>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* Notifications */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotifications(!showNotifications)}
-                className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <Bell className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-              </button>
-              
-              {showNotifications && (
-                <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700">
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Notifications</h3>
-                    {notifications.length === 0 ? (
-                      <p className="text-gray-500 dark:text-gray-400">No new notifications</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {notifications.map((notif, index) => (
-                          <div key={index} className="p-2 hover:bg-gray-50 dark:hover:bg-slate-700 rounded">
-                            <p className="text-sm text-gray-800 dark:text-gray-200">{notif.message}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+              {/* User Profile */}
+              <div className="relative">
+                <button
+                  onClick={() => {
+                    setShowProfile(!showProfile)
+                    setShowNotifications(false)
+                  }}
+                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-medium">
+                      {user?.name?.charAt(0).toUpperCase() || 'U'}
+                    </span>
                   </div>
-                </div>
-              )}
-            </div>
+                  <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    {user?.name || 'User'}
+                  </span>
+                </button>
 
-            {/* Currency Display */}
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600 dark:text-gray-300">
-                {formatAmount(0, { style: 'currency', currency: 'USD' })}
-              </span>
-            </div>
-
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
-              title="Toggle theme"
-            >
-              {isDark ? (
-                <Sun className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-              ) : (
-                <Moon className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-              )}
-            </button>
-
-            {/* Profile Menu */}
-            <div className="relative">
-              <button
-                onClick={() => setShowProfile(!showProfile)}
-                className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                <User className="h-5 w-5 text-gray-600 dark:text-gray-300" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                  {user?.name || 'User'}
-                </span>
-              </button>
-
-              {showProfile && (
-                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700">
-                  <div className="py-1">
-                    <Link
-                      to="/profile"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                      onClick={() => setShowProfile(false)}
-                    >
-                      <User className="mr-3 h-4 w-4" />
-                      Profile
-                    </Link>
-                    <Link
-                      to="/settings"
-                      className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-700"
-                      onClick={() => setShowProfile(false)}
-                    >
-                      <Settings className="mr-3 h-4 w-4" />
-                      Settings
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-700"
-                    >
-                      <LogOut className="mr-3 h-4 w-4" />
-                      Logout
-                    </button>
+                {showProfile && (
+                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="p-4 border-b border-gray-200 dark:border-slate-700">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{user?.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email}</p>
+                    </div>
+                    <div className="py-2">
+                      <Link
+                        to="/profile"
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800"
+                        onClick={() => setShowProfile(false)}
+                      >
+                        <User className="h-4 w-4 mr-3" />
+                        Profile
+                      </Link>
+                      <Link
+                        to="/settings"
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800"
+                        onClick={() => setShowProfile(false)}
+                      >
+                        <Settings className="h-4 w-4 mr-3" />
+                        Settings
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-slate-800"
+                      >
+                        <LogOut className="h-4 w-4 mr-3" />
+                        Sign out
+                      </button>
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -6,7 +6,7 @@ import Header from './Header'
 import MainContent from './MainContent'
 
 interface LayoutProps {
-  children: ReactNode;
+  children: ReactNode
 }
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {

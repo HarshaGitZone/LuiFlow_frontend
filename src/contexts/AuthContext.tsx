@@ -10,13 +10,17 @@ interface User {
 }
 
 interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (userData: any) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
-  updateProfile: (userData: any) => Promise<{ success: boolean; error?: string }>;
-  loading: boolean;
-  isAuthenticated: boolean;
+  user: User | null
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  register: (userData: any) => Promise<{ success: boolean; error?: string }>
+  logout: () => void
+  updateProfile: (userData: any) => Promise<{ success: boolean; error?: string }>
+  loading: boolean
+  isAuthenticated: boolean
+}
+
+interface AuthProviderProps {
+  children: ReactNode
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -40,15 +44,11 @@ export const useAuth = (): AuthContextType => {
   return context
 }
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => getStoredUser())
-  const [loading, setLoading] = useState<boolean>(true)
+  const [loading, setLoading] = useState(true)
 
-  const persistUser = (nextUser: User | null): void => {
+  const persistUser = (nextUser: User | null) => {
     setUser(nextUser)
     if (nextUser) {
       localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser))
@@ -67,7 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [])
 
-  const fetchUserProfile = async (): Promise<void> => {
+  const fetchUserProfile = async () => {
     try {
       const response = await api.get('/api/auth/profile')
       const profileUser = response?.data?.data?.user
@@ -85,7 +85,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string) => {
     try {
       const response = await api.post('/api/auth/login', { email, password })
       const { token, user } = response.data.data
@@ -102,7 +102,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
-  const register = async (userData: any): Promise<{ success: boolean; error?: string }> => {
+  const register = async (userData: any) => {
     try {
       const response = await api.post('/api/auth/register', userData)
       const { token, user } = response.data.data
@@ -119,14 +119,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
-  const logout = (): void => {
+  const logout = () => {
     localStorage.removeItem(TOKEN_STORAGE_KEY)
     persistUser(null)
     // Clear all user-related data from storage
     clearUserData()
   }
 
-  const updateProfile = async (userData: any): Promise<{ success: boolean; error?: string }> => {
+  const updateProfile = async (userData: any) => {
     try {
       const response = await api.put('/api/auth/profile', userData)
       const updatedUser = response?.data?.data?.user

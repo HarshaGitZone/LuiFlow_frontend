@@ -1,20 +1,24 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 
 interface CurrencyMeta {
-  locale: string;
-  rateFromINR: number;
+  locale: string
+  rateFromINR: number
 }
 
 interface CurrencyContextType {
-  currency: string;
-  setCurrency: (value: string) => void;
-  convertFromINR: (amount: number) => number;
-  convertToINR: (amountInSelectedCurrency: number) => number;
-  getCurrencySymbol: () => string;
-  formatAmount: (amount: number, options?: Intl.NumberFormatOptions) => string;
-  formatAmountWithSign: (amount: number, type: 'income' | 'expense') => string;
-  supportedCurrencies: string[];
-  currencyMeta: Record<string, CurrencyMeta>;
+  currency: string
+  setCurrency: (value: string) => void
+  convertFromINR: (amount: number | string) => number
+  convertToINR: (amountInSelectedCurrency: number | string) => number
+  getCurrencySymbol: () => string
+  formatAmount: (amount: number | string, options?: Intl.NumberFormatOptions) => string
+  formatAmountWithSign: (amount: number | string, type: 'income' | 'expense') => string
+  supportedCurrencies: string[]
+  currencyMeta: Record<string, CurrencyMeta>
+}
+
+interface CurrencyProviderProps {
+  children: ReactNode
 }
 
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined)
@@ -54,10 +58,6 @@ export const useCurrency = (): CurrencyContextType => {
   return context
 }
 
-interface CurrencyProviderProps {
-  children: ReactNode;
-}
-
 export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) => {
   const [currency, setCurrencyState] = useState<string>('INR')
   const [ratesFromINR, setRatesFromINR] = useState<Record<string, number>>(
@@ -89,7 +89,7 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) 
       }
     }
 
-    const fetchRates = async (): Promise<void> => {
+    const fetchRates = async () => {
       try {
         const response = await fetch('https://open.er-api.com/v6/latest/INR')
         const payload = await response.json()
@@ -123,13 +123,13 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) 
     localStorage.setItem('selectedCurrency', normalized)
   }
 
-  const convertFromINR = (amount: number): number => {
+  const convertFromINR = (amount: number | string): number => {
     const numericAmount = Number(amount) || 0
     const rate = ratesFromINR[currency] || CURRENCY_META[currency].rateFromINR
     return numericAmount * rate
   }
 
-  const convertToINR = (amountInSelectedCurrency: number): number => {
+  const convertToINR = (amountInSelectedCurrency: number | string): number => {
     const numericAmount = Number(amountInSelectedCurrency) || 0
     const rate = ratesFromINR[currency] || CURRENCY_META[currency].rateFromINR
     if (!rate) return 0
@@ -148,7 +148,7 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) 
     }
   }
 
-  const formatAmount = (amount: number, options: Intl.NumberFormatOptions = {}): string => {
+  const formatAmount = (amount: number | string, options: Intl.NumberFormatOptions = {}): string => {
     const converted = convertFromINR(amount)
     return new Intl.NumberFormat(CURRENCY_META[currency].locale, {
       style: 'currency',
@@ -159,7 +159,7 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) 
     }).format(converted)
   }
 
-  const formatAmountWithSign = (amount: number, type: 'income' | 'expense'): string => {
+  const formatAmountWithSign = (amount: number | string, type: 'income' | 'expense'): string => {
     const sign = type === 'income' ? '+' : '-'
     return `${sign}${formatAmount(amount)}`
   }

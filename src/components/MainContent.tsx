@@ -1,21 +1,21 @@
 import React, { useState, useEffect, ReactNode } from 'react'
 
 interface MainContentProps {
-  children: ReactNode;
+  children: ReactNode
 }
 
 const MainContent: React.FC<MainContentProps> = ({ children }) => {
   const [isCollapsed, setIsCollapsed] = useState(() => localStorage.getItem('sidebar_collapsed') === 'true')
   
   useEffect(() => {
-    const handleSidebarChange = (event: any) => {
+    const handleSidebarChange = (event: CustomEvent<boolean>) => {
       setIsCollapsed(event.detail)
     }
     
-    window.addEventListener('sidebar-collapse', handleSidebarChange)
+    window.addEventListener('sidebar-collapse', handleSidebarChange as EventListener)
     
     return () => {
-      window.removeEventListener('sidebar-collapse', handleSidebarChange)
+      window.removeEventListener('sidebar-collapse', handleSidebarChange as EventListener)
     }
   }, [])
 

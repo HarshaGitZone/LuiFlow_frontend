@@ -16,9 +16,9 @@ import {
 } from 'lucide-react'
 
 interface NavigationItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<any>;
+  name: string
+  href: string
+  icon: React.ComponentType<any>
 }
 
 const Sidebar: React.FC = () => {
@@ -41,7 +41,7 @@ const Sidebar: React.FC = () => {
   ]
 
   // Emit custom event when sidebar state changes
-  const handleCollapseToggle = (): void => {
+  const handleCollapseToggle = () => {
     const newState = !isCollapsed
     setIsCollapsed(newState)
     localStorage.setItem('sidebar_collapsed', String(newState))

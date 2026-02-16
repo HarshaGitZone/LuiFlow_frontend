@@ -1,44 +1,132 @@
 import React from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts'
 
-interface PortfolioChartProps {
-  data: Array<{
-    date: string
-    value: number
-  }>
+interface ChartData {
+  name: string
+  value: number
+  date?: string
+  symbol?: string
+  pnlPercentage?: number
+  percentage?: number
 }
 
-const PortfolioChart: React.FC<PortfolioChartProps> = ({ data }) => {
+interface CustomTooltipProps {
+  active?: boolean
+  payload?: any[]
+  label?: string
+}
+
+interface PortfolioChartProps {
+  data: ChartData[]
+  type?: 'line' | 'pie' | 'bar' | 'performance'
+  title: string
+}
+
+const PortfolioChart: React.FC<PortfolioChartProps> = ({ data, type = 'line', title }) => {
+  const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
+
+  const formatCurrency = (value: number): string => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value)
+  }
+
+  const CustomTooltip: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg">
+          <p className="text-sm font-medium text-gray-900 dark:text-white">{label}</p>
+          {payload.map((entry, index) => (
+            <p key={index} className="text-sm" style={{ color: entry.color }}>
+              {entry.name}: {entry.name.includes('Value') || entry.name.includes('Amount') ? formatCurrency(entry.value) : entry.value}
+            </p>
+          ))}
+        </div>
+      )
+    }
+    return null
+  }
+
+  const renderChart = () => {
+    switch (type) {
+      case 'pie':
+        return (
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={data}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percentage }: any) => `${name}: ${percentage ? percentage.toFixed(1) : 0}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {data.map((_, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+            </PieChart>
+          </ResponsiveContainer>
+        )
+
+      case 'bar':
+        return (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis tickFormatter={(value: number) => `$${(value / 1000).toFixed(0)}K`} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="value" fill="#3B82F6" />
+            </BarChart>
+          </ResponsiveContainer>
+        )
+
+      case 'performance':
+        return (
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="symbol" />
+              <YAxis tickFormatter={(value: number) => `${value}%`} />
+              <Tooltip content={<CustomTooltip />} />
+              <Bar dataKey="pnlPercentage" fill="#10B981" />
+            </BarChart>
+          </ResponsiveContainer>
+        )
+
+      default: // line chart
+        return (
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis tickFormatter={(value: number) => `$${(value / 1000).toFixed(0)}K`} />
+              <Tooltip content={<CustomTooltip />} />
+              <Line type="monotone" dataKey="value" stroke="#3B82F6" strokeWidth={2} />
+            </LineChart>
+          </ResponsiveContainer>
+        )
+    }
+  }
+
   return (
-    <ResponsiveContainer width="100%" height={300}>
-      <LineChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis 
-          dataKey="date" 
-          tick={{ fontSize: 12 }}
-          tickFormatter={(value) => new Date(value).toLocaleDateString()}
-        />
-        <YAxis 
-          tick={{ fontSize: 12 }}
-          tickFormatter={(value) => `$${value.toLocaleString()}`}
-        />
-        <Tooltip 
-          formatter={(value: any, name: any) => [
-            `$${Number(value).toLocaleString()}`,
-            name
-          ]}
-          labelFormatter={(label) => new Date(label).toLocaleDateString()}
-        />
-        <Line 
-          type="monotone" 
-          dataKey="value" 
-          stroke="#3b82f6" 
-          strokeWidth={2}
-          dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-          activeDot={{ r: 6 }}
-        />
-      </LineChart>
-    </ResponsiveContainer>
+    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow">
+      <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">{title}</h3>
+      {data && data.length > 0 ? (
+        renderChart()
+      ) : (
+        <div className="flex items-center justify-center h-64 text-gray-500 dark:text-gray-400">
+          No data available
+        </div>
+      )}
+    </div>
   )
 }
 
