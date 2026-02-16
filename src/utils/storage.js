@@ -104,7 +104,8 @@ export const preferencesStorage = {
     return storage.get(STORAGE_KEYS.USER_PREFERENCES, {
       theme: 'light',
       currency: 'INR',
-      dateFormat: 'DD/MM/YYYY'
+      dateFormat: 'MMM DD, YYYY',
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
     })
   },
 

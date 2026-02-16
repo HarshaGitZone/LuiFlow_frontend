@@ -4,9 +4,11 @@ import { useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import API from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
+import { useDateFormatter } from '../utils/datePreferences'
 
 const Transactions = () => {
   const { formatAmountWithSign } = useCurrency()
+  const { formatDate } = useDateFormatter()
   const [searchParams, setSearchParams] = useSearchParams()
   const [transactions, setTransactions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -215,14 +217,6 @@ const Transactions = () => {
     } catch (error) {
       console.error('Error updating transaction:', error)
     }
-  }
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
   }
 
   return (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useCurrency } from '../contexts/CurrencyContext'
+import { useDateFormatter } from '../utils/datePreferences'
 import { 
   User, 
   Mail, 
@@ -21,6 +22,7 @@ import {
 const Profile = () => {
   const { user, updateProfile } = useAuth()
   const { formatAmount } = useCurrency()
+  const { formatDate, formatMonthYear } = useDateFormatter()
   const [activeTab, setActiveTab] = useState('overview')
   const [isEditing, setIsEditing] = useState(false)
   const [editForm, setEditForm] = useState({
@@ -152,7 +154,7 @@ const Profile = () => {
           <div key={transaction.id} className="px-6 py-4 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-900">{transaction.description}</p>
-              <p className="text-sm text-gray-500">{transaction.date}</p>
+              <p className="text-sm text-gray-500">{formatDate(transaction.date)}</p>
             </div>
             <div className={`text-sm font-medium ${
               transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
@@ -186,7 +188,7 @@ const Profile = () => {
                 <h1 className="text-2xl font-bold text-gray-900">{user?.name}</h1>
                 <p className="text-gray-600">{user?.email}</p>
                 <p className="text-sm text-gray-500 mt-1">
-                  Member since {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
+                  Member since {formatMonthYear(new Date(), { month: 'long' })}
                 </p>
               </div>
             </div>

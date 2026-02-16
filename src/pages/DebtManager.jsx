@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { Plus, Eye, Edit2, Trash2, X, TrendingUp, TrendingDown, DollarSign, Calendar, User, CreditCard, Banknote, Calculator, ChevronRight, Clock } from 'lucide-react'
 import { api } from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
+import { useDateFormatter } from '../utils/datePreferences'
 
 const DebtManager = () => {
   const { formatAmount } = useCurrency()
+  const { formatDate } = useDateFormatter()
   const [debts, setDebts] = useState([])
   const [summary, setSummary] = useState({
     totalOutstandingDebt: 0,
@@ -416,7 +418,7 @@ const DebtManager = () => {
                           </div>
                           <div>
                             <p className="text-gray-500 dark:text-gray-400">Start Date</p>
-                            <p className="font-medium text-gray-900 dark:text-gray-100">{new Date(debt.startDate).toLocaleDateString()}</p>
+                            <p className="font-medium text-gray-900 dark:text-gray-100">{formatDate(debt.startDate)}</p>
                           </div>
                         </div>
                       </div>
@@ -836,6 +838,7 @@ const DebtManager = () => {
 // Debt Detail Modal Component
 const DebtDetailModal = ({ debt, onClose, onEdit, onAddPayment }) => {
   const { formatAmount } = useCurrency()
+  const { formatDate } = useDateFormatter()
   const formatCurrency = (amount) => formatAmount(amount)
 
   // State for manual projection calculator
@@ -947,7 +950,7 @@ const DebtDetailModal = ({ debt, onClose, onEdit, onAddPayment }) => {
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Start Date</p>
-                <p className="font-medium text-gray-900 dark:text-gray-100">{new Date(debt.startDate).toLocaleDateString()}</p>
+                <p className="font-medium text-gray-900 dark:text-gray-100">{formatDate(debt.startDate)}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Interest Type</p>
@@ -1112,7 +1115,7 @@ const DebtDetailModal = ({ debt, onClose, onEdit, onAddPayment }) => {
                   <div key={payment._id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-slate-800 rounded-lg">
                     <div>
                       <p className="font-medium text-gray-900 dark:text-gray-100">{formatCurrency(payment.amountPaid)}</p>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{new Date(payment.paymentDate).toLocaleDateString()} • {payment.paymentMode}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{formatDate(payment.paymentDate)} • {payment.paymentMode}</p>
                       {payment.notes && <p className="text-sm text-gray-500 dark:text-gray-400">{payment.notes}</p>}
                     </div>
                   </div>

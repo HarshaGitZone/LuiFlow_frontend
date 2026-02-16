@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Download, FileJson, Printer, CalendarDays, RefreshCcw } from 'lucide-react'
 import { api } from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
+import { useDateFormatter } from '../utils/datePreferences'
 
 const RANGE_OPTIONS = [
   { value: 'current-month', label: 'Current Month' },
@@ -41,29 +42,26 @@ const toMonthInputValue = (date) => {
   return `${year}-${month}`
 }
 
-const formatDateForRow = (date) =>
-  new Date(date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
-
-const getDateRange = ({ rangeType, selectedMonth, customStart, customEnd }) => {
+const getDateRange = ({ rangeType, selectedMonth, customStart, customEnd, getMonthYearLabel }) => {
   const now = new Date()
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999)
 
   if (rangeType === 'current-month') {
     const start = new Date(now.getFullYear(), now.getMonth(), 1)
-    return { start, end: today, label: `${start.toLocaleString('en-US', { month: 'long' })} ${start.getFullYear()}` }
+    return { start, end: today, label: getMonthYearLabel(start) }
   }
 
   if (rangeType === 'last-month') {
     const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
     const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
-    return { start, end, label: `${start.toLocaleString('en-US', { month: 'long' })} ${start.getFullYear()}` }
+    return { start, end, label: getMonthYearLabel(start) }
   }
 
   if (rangeType === 'selected-month' && selectedMonth) {
     const [year, month] = selectedMonth.split('-').map(Number)
     const start = new Date(year, month - 1, 1)
     const end = new Date(year, month, 0, 23, 59, 59, 999)
-    return { start, end, label: `${start.toLocaleString('en-US', { month: 'long' })} ${year}` }
+    return { start, end, label: getMonthYearLabel(start) }
   }
 
   if (rangeType === 'last-year') {
@@ -102,6 +100,7 @@ const escapeCsv = (value) => {
 
 const Reports = () => {
   const { formatAmount } = useCurrency()
+  const { formatDate, formatMonthYear } = useDateFormatter()
   const [selectedRange, setSelectedRange] = useState('current-month')
   const [selectedMonth, setSelectedMonth] = useState(toMonthInputValue(new Date()))
   const [manualMonth, setManualMonth] = useState(`${new Date().getMonth() + 1}`.padStart(2, '0'))
@@ -125,9 +124,10 @@ const Reports = () => {
       rangeType: selectedRange,
       selectedMonth,
       customStart,
-      customEnd
+      customEnd,
+      getMonthYearLabel: (date) => formatMonthYear(date, { month: 'long' })
     })
-  }, [selectedRange, selectedMonth, customStart, customEnd])
+  }, [selectedRange, selectedMonth, customStart, customEnd, formatMonthYear])
 
   const fetchTransactions = useCallback(async (start, end) => {
     const limit = 200
@@ -283,7 +283,7 @@ const Reports = () => {
 
     for (const transaction of transactions) {
       lines.push([
-        formatDateForRow(transaction.date),
+        formatDate(transaction.date),
         transaction.description || '',
         transaction.category || '',
         transaction.type || '',
@@ -577,7 +577,7 @@ const Reports = () => {
                 )}
                 {transactions.map((transaction) => (
                   <tr key={transaction._id}>
-                    <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">{formatDateForRow(transaction.date)}</td>
+                    <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">{formatDate(transaction.date)}</td>
                     <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{transaction.description || '-'}</td>
                     <td className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300">{transaction.category || '-'}</td>
                     <td className="px-4 py-2 text-sm">

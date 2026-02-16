@@ -4,10 +4,12 @@ import { api } from '../api'
 import API from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
 import WelcomeHeader from '../components/WelcomeHeader'
+import { useDateFormatter } from '../utils/datePreferences'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts'
 
 const Dashboard = () => {
   const { formatAmount, formatAmountWithSign } = useCurrency()
+  const { formatDate } = useDateFormatter()
   const [summary, setSummary] = useState({ totalIncome: 0, totalExpenses: 0, netFlow: 0 })
   const [recentTransactions, setRecentTransactions] = useState([])
   const [monthlyStats, setMonthlyStats] = useState({ 
@@ -163,7 +165,7 @@ const Dashboard = () => {
                 <div key={transaction._id} className="flex justify-between items-center py-2 border-b">
                   <div>
                     <p className="font-medium text-gray-900">{transaction.description}</p>
-                    <p className="text-sm text-gray-500">{transaction.category} • {new Date(transaction.date).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-500">{transaction.category} • {formatDate(transaction.date)}</p>
                   </div>
                   <p className={`font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
                     {formatAmountWithSign(transaction.amount, transaction.type)}

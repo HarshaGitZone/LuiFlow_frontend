@@ -5,9 +5,11 @@ import { api } from '../api'
 import API from '../api'
 import { csvImportStorage } from '../utils/storage'
 import { useCurrency } from '../contexts/CurrencyContext'
+import { useDateFormatter } from '../utils/datePreferences'
 
 const Import = () => {
   const { formatAmount } = useCurrency()
+  const { formatDate, formatDateTime } = useDateFormatter()
   const navigate = useNavigate()
   const [file, setFile] = useState(null)
   const [uploading, setUploading] = useState(false)
@@ -412,7 +414,7 @@ const Import = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                           <div className="flex items-center">
                             <Clock className="h-4 w-4 text-gray-400 mr-2" />
-                            {new Date(item.importDate).toLocaleString()}
+                            {formatDateTime(item.importDate)}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -797,7 +799,7 @@ const Import = () => {
                       <tbody className="bg-white divide-y divide-green-200">
                         {dryRunResult.validation.validTransactions.map((transaction, index) => (
                           <tr key={index}>
-                            <td className="px-3 py-2 text-xs text-gray-900">{new Date(transaction.date).toLocaleDateString()}</td>
+                            <td className="px-3 py-2 text-xs text-gray-900">{formatDate(transaction.date)}</td>
                             <td className="px-3 py-2 text-xs text-gray-900">{transaction.description}</td>
                             <td className="px-3 py-2 text-xs text-gray-900">{formatAmount(transaction.amount)}</td>
                             <td className="px-3 py-2 text-xs text-gray-900">{transaction.type}</td>

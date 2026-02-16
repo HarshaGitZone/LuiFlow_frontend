@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Edit2, Trash2, X, DollarSign, TrendingUp, TrendingDown, Maximize2, Minimize2 } from 'lucide-react'
 import { api } from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
+import { useDateFormatter } from '../utils/datePreferences'
 
 const Calendar = () => {
   const { formatAmount } = useCurrency()
+  const { formatLongDate } = useDateFormatter()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(null)
   const [transactions, setTransactions] = useState([])
@@ -566,12 +568,7 @@ const Calendar = () => {
               <div className="p-6 border-b border-gray-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                    {zoomedDate.toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric'
-                    })}
+                    {formatLongDate(zoomedDate)}
                   </h2>
                   <button
                     onClick={closeZoom}

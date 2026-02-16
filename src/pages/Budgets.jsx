@@ -24,6 +24,29 @@ const Budgets = () => {
 
   useEffect(() => {
     fetchBudgets()
+    
+    // Listen for real-time budget updates
+    const handleBudgetUpdate = (event) => {
+      console.log('Budget update event:', event)
+      fetchBudgets() // Refresh budgets when any budget is updated
+    }
+    
+    // Add event listener for budget updates
+    window.addEventListener('budget-updated', handleBudgetUpdate)
+    
+    // Also listen for transaction updates since they affect budget spent amounts
+    const handleTransactionUpdate = (event) => {
+      console.log('Transaction update event:', event)
+      fetchBudgets() // Refresh budgets when transactions are updated
+    }
+    
+    window.addEventListener('transaction-updated', handleTransactionUpdate)
+    
+    // Cleanup event listeners
+    return () => {
+      window.removeEventListener('budget-updated', handleBudgetUpdate)
+      window.removeEventListener('transaction-updated', handleTransactionUpdate)
+    }
   }, [])
 
   const fetchBudgets = async () => {
@@ -92,13 +115,19 @@ const Budgets = () => {
     }
 
     try {
-      await api.post('/api/budgets', {
+      const response = await api.post('/api/budgets', {
         name: addForm.name.trim(),
         amount: Number(addForm.amount),
         spent: Number(addForm.spent || 0),
         category: addForm.category.trim(),
         period: addForm.period.trim()
       })
+      
+      // Emit custom event for real-time updates
+      window.dispatchEvent(new CustomEvent('budget-updated', {
+        detail: { action: 'create', budget: response.data }
+      }))
+      
       setShowAddModal(false)
       setAddForm(INITIAL_FORM)
       setFormErrors({})
@@ -130,13 +159,19 @@ const Budgets = () => {
     }
 
     try {
-      await api.put(`/api/budgets/${editingBudget._id}`, {
+      const response = await api.put(`/api/budgets/${editingBudget._id}`, {
         name: editForm.name.trim(),
         amount: Number(editForm.amount),
         spent: Number(editForm.spent || 0),
         category: editForm.category.trim(),
         period: editForm.period.trim()
       })
+      
+      // Emit custom event for real-time updates
+      window.dispatchEvent(new CustomEvent('budget-updated', {
+        detail: { action: 'update', budget: response.data }
+      }))
+      
       setShowEditModal(false)
       setEditingBudget(null)
       setEditForm(INITIAL_FORM)
@@ -148,10 +183,16 @@ const Budgets = () => {
     }
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this budget?')) return
+  const handleDelete = async (id, budgetName) => {
+    if (!window.confirm(`Are you sure you want to delete "${budgetName}" budget? This action cannot be undone.`)) return
     try {
       await api.delete(`/api/budgets/${id}`)
+      
+      // Emit custom event for real-time updates
+      window.dispatchEvent(new CustomEvent('budget-updated', {
+        detail: { action: 'delete', budgetId: id }
+      }))
+      
       await fetchBudgets()
     } catch (error) {
       console.error('Error deleting budget:', error)
@@ -501,7 +542,7 @@ const Budgets = () => {
                             <Edit2 className="h-4 w-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(budget._id)}
+                            onClick={() => handleDelete(budget._id, budget.name)}
                             className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-600 transition-colors"
                             title="Delete"
                           >
