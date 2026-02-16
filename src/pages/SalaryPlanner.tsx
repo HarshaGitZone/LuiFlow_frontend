@@ -2094,6 +2094,12 @@ const SalaryPlanner: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true)
   const [saving, setSaving] = useState<boolean>(false)
   const [currentMonth] = useState<string>(new Date().toISOString().slice(0, 7))
+  const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'info' | 'error'; text: string } | null>(null)
+
+  const showActionMessage = (type: 'success' | 'info' | 'error', text: string) => {
+    setActionMessage({ type, text })
+    window.setTimeout(() => setActionMessage(null), 3000)
+  }
 
   const loadSalaryPlanner = async (month = currentMonth) => {
     try {
@@ -2144,7 +2150,7 @@ const SalaryPlanner: React.FC = () => {
     }
   }
 
-  const saveSalaryPlanner = async (updates: any) => {
+  const saveSalaryPlanner = async (updates: any, successMessage?: string) => {
     try {
       setSaving(true)
       await api.put('/api/salary-planner', {
@@ -2152,8 +2158,12 @@ const SalaryPlanner: React.FC = () => {
         updates
       })
       await loadSalaryPlanner(currentMonth)
+      if (successMessage) {
+        showActionMessage('success', successMessage)
+      }
     } catch (error) {
       console.error('Error saving salary planner:', error)
+      showActionMessage('error', 'Failed to save salary planner data.')
     } finally {
       setSaving(false)
     }
@@ -2201,10 +2211,12 @@ const SalaryPlanner: React.FC = () => {
         })
       }
       await loadSalaryPlanner(currentMonth)
+      showActionMessage('success', editingBill?._id ? 'Bill updated successfully.' : 'Bill added successfully.')
       setEditingBill(null)
       setShowBillForm(false)
     } catch (error) {
       console.error('Error saving bill:', error)
+      showActionMessage('error', 'Failed to save bill. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -2217,8 +2229,10 @@ const SalaryPlanner: React.FC = () => {
         data: { month: currentMonth, billId }
       })
       await loadSalaryPlanner(currentMonth)
+      showActionMessage('success', 'Bill deleted successfully.')
     } catch (error) {
       console.error('Error deleting bill:', error)
+      showActionMessage('error', 'Failed to delete bill. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -2229,15 +2243,18 @@ const SalaryPlanner: React.FC = () => {
       setSaving(true)
       const bill = fixedBills.find(b => b._id === billId)
       if (bill) {
+        const nextStatus = bill.status === 'paid' ? 'unpaid' : 'paid'
         await api.put('/api/salary-planner/fixed-bill', {
           month: currentMonth,
           billId,
-          updates: { ...bill, status: bill.status === 'paid' ? 'unpaid' : 'paid' }
+          updates: { ...bill, status: nextStatus }
         })
         await loadSalaryPlanner(currentMonth)
+        showActionMessage('success', `${bill.name} marked as ${nextStatus === 'paid' ? 'paid' : 'unpaid'} for ${currentMonth}. Monthly amount updated.`)
       }
     } catch (error) {
       console.error('Error toggling bill status:', error)
+      showActionMessage('error', 'Failed to update bill status.')
     } finally {
       setSaving(false)
     }
@@ -2260,10 +2277,12 @@ const SalaryPlanner: React.FC = () => {
       }
       await loadSalaryPlanner(currentMonth)
       await updateCumulativeSavings()
+      showActionMessage('success', editingGoal?._id ? 'Goal updated successfully.' : 'Goal created successfully.')
       setEditingGoal(null)
       setShowGoalForm(false)
     } catch (error) {
       console.error('Error saving goal:', error)
+      showActionMessage('error', 'Failed to save goal.')
     } finally {
       setSaving(false)
     }
@@ -2277,8 +2296,10 @@ const SalaryPlanner: React.FC = () => {
       })
       await loadSalaryPlanner(currentMonth)
       await updateCumulativeSavings()
+      showActionMessage('success', 'Goal deleted successfully.')
     } catch (error) {
       console.error('Error deleting goal:', error)
+      showActionMessage('error', 'Failed to delete goal.')
     } finally {
       setSaving(false)
     }
@@ -2296,9 +2317,11 @@ const SalaryPlanner: React.FC = () => {
         })
         await loadSalaryPlanner(currentMonth)
         await updateCumulativeSavings()
+        showActionMessage('success', 'Goal contribution updated.')
       }
     } catch (error) {
       console.error('Error updating goal contribution:', error)
+      showActionMessage('error', 'Failed to update contribution.')
     } finally {
       setSaving(false)
     }
@@ -2320,7 +2343,10 @@ const SalaryPlanner: React.FC = () => {
         await api.put('/api/salary-planner/subscription', {
           month: currentMonth,
           subscriptionId: editingSubscription._id,
-          updates: subscriptionData
+          updates: {
+            ...subscriptionData,
+            status: editingSubscription.status || 'active'
+          }
         })
       } else {
         await api.post('/api/salary-planner/subscription', {
@@ -2329,10 +2355,12 @@ const SalaryPlanner: React.FC = () => {
         })
       }
       await loadSalaryPlanner(currentMonth)
+      showActionMessage('success', editingSubscription?._id ? 'Subscription updated successfully.' : 'Subscription added successfully.')
       setEditingSubscription(null)
       setShowSubscriptionForm(false)
     } catch (error) {
       console.error('Error saving subscription:', error)
+      showActionMessage('error', 'Failed to save subscription.')
     } finally {
       setSaving(false)
     }
@@ -2345,8 +2373,10 @@ const SalaryPlanner: React.FC = () => {
         data: { month: currentMonth, subscriptionId }
       })
       await loadSalaryPlanner(currentMonth)
+      showActionMessage('success', 'Subscription deleted successfully.')
     } catch (error) {
       console.error('Error deleting subscription:', error)
+      showActionMessage('error', 'Failed to delete subscription.')
     } finally {
       setSaving(false)
     }
@@ -2364,9 +2394,11 @@ const SalaryPlanner: React.FC = () => {
           updates: { ...subscription, status: newStatus }
         })
         await loadSalaryPlanner(currentMonth)
+        showActionMessage('info', `${subscription.name} is now ${newStatus}. Monthly amount updated.`)
       }
     } catch (error) {
       console.error('Error toggling subscription status:', error)
+      showActionMessage('error', 'Failed to update subscription status.')
     } finally {
       setSaving(false)
     }
@@ -2383,8 +2415,10 @@ const SalaryPlanner: React.FC = () => {
         goalsCompleted: savingsGoals.filter(goal => goal.savedAmount >= goal.targetAmount).length
       })
       await loadCumulativeSavings()
+      showActionMessage('success', 'Savings updated successfully.')
     } catch (error) {
       console.error('Error adding manual savings:', error)
+      showActionMessage('error', 'Failed to add savings.')
     } finally {
       setSaving(false)
     }
@@ -2401,8 +2435,10 @@ const SalaryPlanner: React.FC = () => {
         goalsCompleted: savingsGoals.filter(goal => goal.savedAmount >= goal.targetAmount).length
       })
       await loadCumulativeSavings()
+      showActionMessage('success', 'Savings updated successfully.')
     } catch (error) {
       console.error('Error withdrawing manual savings:', error)
+      showActionMessage('error', 'Failed to withdraw savings.')
     } finally {
       setSaving(false)
     }
@@ -2431,6 +2467,17 @@ const SalaryPlanner: React.FC = () => {
           <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">Manage your monthly budget, track expenses, and achieve your savings goals</p>
         </div>
 
+        {actionMessage && (
+          <div className={`mb-4 rounded-lg p-3 text-sm border ${actionMessage.type === 'success'
+              ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300'
+              : actionMessage.type === 'info'
+                ? 'bg-blue-50 border-blue-200 text-blue-700 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-300'
+                : 'bg-red-50 border-red-200 text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
+            }`}>
+            {actionMessage.text}
+          </div>
+        )}
+
         <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center">
@@ -2438,7 +2485,7 @@ const SalaryPlanner: React.FC = () => {
               Monthly Salary
             </h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Salary Amount</label>
               <div className="relative">
@@ -2450,45 +2497,31 @@ const SalaryPlanner: React.FC = () => {
                     const newAmount = parseFloat(e.target.value) || 0
                     setSalary(prev => ({ ...prev, amount: newAmount }))
                   }}
-                  onBlur={() => saveSalaryPlanner({ salary: { ...salary, amount: Number(salary.amount) || 0 } })}
                   className="w-full pl-8 pr-3 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500"
                   placeholder="45000"
                   disabled={saving}
                 />
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Credit Date</label>
-              <select
-                value={salary.creditDate}
-                onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                  const newCreditDate = e.target.value
-                  setSalary(prev => ({ ...prev, creditDate: newCreditDate }))
-                  saveSalaryPlanner({ salary: { ...salary, creditDate: newCreditDate } })
-                }}
-                className="w-full px-3 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-                disabled={saving}
-              >
-                {Array.from({length: 31}, (_, i) => i + 1).map(day => (
-                  <option key={day} value={day.toString().padStart(2, '0')}>
-                    {day}{day === 1 ? 'st' : 'th'}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Month</label>
-              <input
-                type="month"
-                value={salary.month}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => setSalary(prev => ({ ...prev, month: e.target.value }))}
-                className="w-full px-3 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+            <button
+              onClick={() => saveSalaryPlanner(
+                {
+                  salary: {
+                    ...salary,
+                    amount: Number(salary.amount) || 0
+                  }
+                },
+                'Salary is updated successfully.'
+              )}
+              disabled={saving}
+              className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? 'Updating...' : 'Update Salary'}
+            </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
           {/* Fixed Bills Section */}
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col md:min-h-[400px]">
             <div className="flex items-center justify-between mb-4">
@@ -2553,7 +2586,71 @@ const SalaryPlanner: React.FC = () => {
             </div>
           </div>
 
-          {/* Variable Expenses Section */}
+          {/* Subscriptions Row (center) */}
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Subscriptions</h3>
+              <button
+                onClick={() => {
+                  setEditingSubscription(null)
+                  setShowSubscriptionForm(true)
+                }}
+                className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center whitespace-nowrap text-sm"
+              >
+                <Plus className="h-4 w-4 mr-2" /> Add
+              </button>
+            </div>
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+              {subscriptions.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">No subscriptions added yet</div>
+              ) : (
+                subscriptions.map(sub => (
+                  <div key={sub._id} className="p-3 border rounded-lg bg-purple-50 border-purple-200 dark:bg-violet-900/35 dark:border-violet-700">
+                    <div className="flex justify-between items-center gap-3">
+                      <div className="min-w-0">
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm break-words">{sub.name}</h4>
+                        <p className="text-xs text-gray-600 dark:text-gray-300 break-words">{sub.provider}</p>
+                        <p className="text-xs text-purple-700 dark:text-violet-300 font-bold">{formatCurrency(sub.monthlyCost)}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Status: {sub.status}</p>
+                      </div>
+                      <div className="flex items-center space-x-1 shrink-0">
+                        <button
+                          onClick={() => {
+                            setEditingSubscription(sub)
+                            setShowSubscriptionForm(true)
+                          }}
+                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                          title="Edit subscription"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => toggleSubscriptionStatus(sub._id)}
+                          className="p-2 text-purple-700 dark:text-violet-300 hover:bg-purple-100 dark:hover:bg-violet-900/40 rounded"
+                          title={sub.status === 'active' ? 'Pause subscription' : 'Activate subscription'}
+                        >
+                          {sub.status === 'active' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                        </button>
+                        <button
+                          onClick={() => deleteSubscription(sub._id)}
+                          className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                          title="Delete subscription"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700 text-sm flex justify-between">
+              <span className="text-gray-600 dark:text-gray-300">Total Subs:</span>
+              <span className="font-semibold text-purple-700 dark:text-violet-300">{formatCurrency(totalSubscriptionCost)}</span>
+            </div>
+          </div>
+
+          {/* Variable Expenses Section (right) */}
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col md:min-h-[400px]">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Variable Expenses</h3>
             <div className="space-y-4 flex-1">
@@ -2569,58 +2666,6 @@ const SalaryPlanner: React.FC = () => {
                 <h4 className="font-medium text-gray-900 dark:text-violet-100 mb-2">Available to Spend</h4>
                 <p className="text-2xl font-bold text-purple-700 dark:text-violet-300">{formatCurrency(remainingAfterSubscriptions)}</p>
               </div>
-            </div>
-          </div>
-
-          {/* Safe Spending Meter */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Safe Spending Meter</h3>
-            <div className="text-center flex-1">
-              <div className="mb-4">
-                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Safe Daily Spending Limit</p>
-                <p className="text-3xl font-bold text-blue-600 dark:text-rose-300">{formatCurrency(safeDailySpending)}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">per day</p>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-4 mb-4 overflow-hidden">
-                <div 
-                  className={`h-4 rounded-full transition-all ${projectedOverspend > 0 ? 'bg-red-600' : 'bg-green-600'}`}
-                  style={{ width: `${Math.min(100, ((variableExpenses.totalSpent || 0) / (safeDailySpending * getDaysLeftInMonth() || 1)) * 100)}%` }}
-                />
-              </div>
-              {projectedOverspend > 0 && (
-                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-300">
-                  <AlertTriangle className="h-4 w-4 inline mr-2" /> Projected overspend: {formatCurrency(projectedOverspend)}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Subscriptions Row */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Subscriptions</h3>
-              <button onClick={() => setShowSubscriptionForm(true)} className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center whitespace-nowrap text-sm">
-                <Plus className="h-4 w-4 mr-2" /> Add
-              </button>
-            </div>
-            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
-              {subscriptions.map(sub => (
-                <div key={sub._id} className="p-3 border rounded-lg bg-purple-50 border-purple-200 dark:bg-violet-900/35 dark:border-violet-700">
-                  <div className="flex justify-between items-center gap-3">
-                    <div className="min-w-0">
-                      <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm break-words">{sub.name}</h4>
-                      <p className="text-xs text-purple-700 dark:text-violet-300 font-bold">{formatCurrency(sub.monthlyCost)}</p>
-                    </div>
-                    <button onClick={() => toggleSubscriptionStatus(sub._id)} className="text-purple-700 dark:text-violet-300">
-                      {sub.status === 'active' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700 text-sm flex justify-between">
-              <span className="text-gray-600 dark:text-gray-300">Total Subs:</span>
-              <span className="font-semibold text-purple-700 dark:text-violet-300">{formatCurrency(totalSubscriptionCost)}</span>
             </div>
           </div>
         </div>
@@ -2654,7 +2699,82 @@ const SalaryPlanner: React.FC = () => {
         </div>
       </div>
 
-      {/* Forms for Goals and Subscriptions remain structurally the same as Bills modal example */}
+      {showSubscriptionForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {editingSubscription?._id ? 'Edit Subscription' : 'Add Subscription'}
+              </h3>
+              <button onClick={() => { setShowSubscriptionForm(false); setEditingSubscription(null) }}>
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <input
+                type="text"
+                id="subscriptionName"
+                placeholder="Subscription name"
+                defaultValue={editingSubscription?.name || ''}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+              />
+              <input
+                type="text"
+                id="subscriptionProvider"
+                placeholder="Provider"
+                defaultValue={editingSubscription?.provider || ''}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+              />
+              <input
+                type="number"
+                id="subscriptionCost"
+                placeholder="Monthly cost"
+                defaultValue={editingSubscription?.monthlyCost || ''}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+              />
+              <select
+                id="subscriptionRenewalDate"
+                defaultValue={editingSubscription?.renewalDate || '01'}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100"
+              >
+                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
+                  <option key={day} value={day.toString().padStart(2, '0')}>
+                    {day.toString().padStart(2, '0')}
+                  </option>
+                ))}
+              </select>
+              <select
+                id="subscriptionCategory"
+                defaultValue={editingSubscription?.category || 'Entertainment'}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100"
+              >
+                <option value="Entertainment">Entertainment</option>
+                <option value="Productivity">Productivity</option>
+                <option value="Education">Education</option>
+                <option value="Shopping">Shopping</option>
+                <option value="Finance">Finance</option>
+              </select>
+              <button
+                onClick={() => {
+                  const name = (document.getElementById('subscriptionName') as HTMLInputElement | null)?.value || ''
+                  const provider = (document.getElementById('subscriptionProvider') as HTMLInputElement | null)?.value || ''
+                  const monthlyCost = Number.parseFloat((document.getElementById('subscriptionCost') as HTMLInputElement | null)?.value || '0')
+                  const renewalDate = (document.getElementById('subscriptionRenewalDate') as HTMLSelectElement | null)?.value || '01'
+                  const category = (document.getElementById('subscriptionCategory') as HTMLSelectElement | null)?.value || 'Entertainment'
+                  if (name && provider && monthlyCost > 0) {
+                    handleSubscriptionSubmit({ name, provider, monthlyCost, renewalDate, category })
+                  }
+                }}
+                className="w-full py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              >
+                {editingSubscription?._id ? 'Update Subscription' : 'Add Subscription'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Forms for Goals */}
       {showGoalForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4">
           <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 w-full max-w-md">

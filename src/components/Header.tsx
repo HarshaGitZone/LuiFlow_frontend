@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useTheme } from '../contexts/ThemeContext'
@@ -29,9 +29,10 @@ interface Notification {
   id: string
   text: string
   time: string
-  type: 'budget' | 'bill'
+  type: 'budget' | 'bill' | 'expense' | 'system'
   severity: 'critical' | 'warning' | 'info'
   sortWeight: number
+  createdAt: number
 }
 
 const Header: React.FC = () => {
@@ -42,14 +43,52 @@ const Header: React.FC = () => {
   const { isDark, toggleTheme } = useTheme()
   const { formatAmount } = useCurrency()
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [activityNotifications, setActivityNotifications] = useState<Notification[]>([])
   const [notificationsLoading, setNotificationsLoading] = useState(false)
   const [notificationsError, setNotificationsError] = useState('')
+  const [notificationsCleared, setNotificationsCleared] = useState(false)
+  const lastNotificationsFetchAtRef = useRef(0)
   const [quickStats, setQuickStats] = useState<QuickStats>({
     todayExpense: 0,
     todayIncome: 0,
     weekExpense: 0,
     weekIncome: 0
   })
+
+  const toNotificationTime = (date = new Date()) => {
+    const now = Date.now()
+    const diffMs = now - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    if (diffMins <= 0) return 'Just now'
+    if (diffMins === 1) return '1 min ago'
+    if (diffMins < 60) return `${diffMins} mins ago`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours === 1) return '1 hour ago'
+    return `${diffHours} hours ago`
+  }
+
+  const addActivityNotification = (
+    text: string,
+    options?: { severity?: 'critical' | 'warning' | 'info'; type?: Notification['type'] }
+  ) => {
+    const createdAt = Date.now()
+    const severity = options?.severity || 'info'
+    const type = options?.type || 'system'
+    const sortWeight = severity === 'critical' ? 0 : severity === 'warning' ? 1 : 2
+
+    setActivityNotifications((prev) => {
+      const next: Notification = {
+        id: `activity-${createdAt}-${Math.random().toString(36).slice(2, 8)}`,
+        text,
+        time: toNotificationTime(new Date(createdAt)),
+        type,
+        severity,
+        sortWeight,
+        createdAt
+      }
+      return [next, ...prev].slice(0, 20)
+    })
+  }
 
   useEffect(() => {
     const fetchQuickStats = async () => {
@@ -139,8 +178,13 @@ const Header: React.FC = () => {
     }
   }
 
-  const buildNotifications = (budgets: any[] = [], fixedBills: any[] = []) => {
+  const buildNotifications = (
+    budgets: any[] = [],
+    fixedBills: any[] = [],
+    stats: QuickStats = { todayExpense: 0, todayIncome: 0, weekExpense: 0, weekIncome: 0 }
+  ) => {
     const alerts: Notification[] = []
+    const createdAt = Date.now()
 
     budgets.forEach((budget) => {
       const amount = Number(budget.amount) || 0
@@ -155,19 +199,21 @@ const Header: React.FC = () => {
         alerts.push({
           id: `budget-over-${budget._id}`,
           text: `${budgetName} exceeded by ${formatAmount(spent - amount, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}`,
-          time: 'Just now',
+          time: toNotificationTime(new Date(createdAt)),
           type: 'budget',
           severity: 'critical',
-          sortWeight: 0
+          sortWeight: 0,
+          createdAt
         })
       } else if (usagePercent >= 80) {
         alerts.push({
           id: `budget-near-${budget._id}`,
           text: `${budgetName} is ${Math.round(usagePercent)}% used`,
-          time: 'Just now',
+          time: toNotificationTime(new Date(createdAt)),
           type: 'budget',
           severity: 'warning',
-          sortWeight: 1
+          sortWeight: 1,
+          createdAt
         })
       }
     })
@@ -189,15 +235,62 @@ const Header: React.FC = () => {
             time: 'This month',
             type: 'bill',
             severity: dueMessage.severity as 'critical' | 'warning' | 'info',
-            sortWeight: dueMessage.severity === 'critical' ? 0 : dueMessage.severity === 'warning' ? 1 : 2
+            sortWeight: dueMessage.severity === 'critical' ? 0 : dueMessage.severity === 'warning' ? 1 : 2,
+            createdAt
           })
         }
       })
 
-    return alerts.sort((a, b) => a.sortWeight - b.sortWeight)
+    if (stats.todayIncome > 0 && stats.todayExpense > stats.todayIncome) {
+      alerts.push({
+        id: 'expense-over-income-today',
+        text: `Today's expenses are higher than income by ${formatAmount(stats.todayExpense - stats.todayIncome, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}`,
+        time: toNotificationTime(new Date(createdAt)),
+        type: 'expense',
+        severity: 'warning',
+        sortWeight: 1,
+        createdAt
+      })
+    }
+
+    if (stats.weekIncome > 0 && stats.weekExpense > stats.weekIncome * 1.25) {
+      alerts.push({
+        id: 'expense-over-income-week',
+        text: 'Weekly expenses are significantly above weekly income.',
+        time: toNotificationTime(new Date(createdAt)),
+        type: 'expense',
+        severity: 'critical',
+        sortWeight: 0,
+        createdAt
+      })
+    }
+
+    if (budgets.length === 0) {
+      alerts.push({
+        id: 'no-budget-data',
+        text: 'No budgets available right now.',
+        time: toNotificationTime(new Date(createdAt)),
+        type: 'system',
+        severity: 'info',
+        sortWeight: 2,
+        createdAt
+      })
+    }
+
+    return alerts.sort((a, b) => (a.sortWeight - b.sortWeight) || (b.createdAt - a.createdAt))
   }
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = async (options?: { force?: boolean }) => {
+    if (notificationsCleared && !options?.force) {
+      return
+    }
+
+    const nowTs = Date.now()
+    if (!options?.force && nowTs - lastNotificationsFetchAtRef.current < 15000) {
+      return
+    }
+    lastNotificationsFetchAtRef.current = nowTs
+
     try {
       setNotificationsLoading(true)
       setNotificationsError('')
@@ -220,7 +313,7 @@ const Header: React.FC = () => {
         setNotificationsError('Failed to load notifications')
       }
 
-      setNotifications(buildNotifications(budgets, fixedBills))
+      setNotifications(buildNotifications(budgets, fixedBills, quickStats))
     } catch (error) {
       console.error('Failed to fetch notifications:', error)
       setNotifications([])
@@ -229,6 +322,48 @@ const Header: React.FC = () => {
       setNotificationsLoading(false)
     }
   }
+
+  useEffect(() => {
+    if (!user) return
+
+    fetchNotifications({ force: true })
+
+    const handleTransactionUpdate = () => {
+      setNotificationsCleared(false)
+      addActivityNotification('Transactions data updated.', { severity: 'info', type: 'system' })
+      fetchNotifications()
+    }
+
+    const handleBudgetUpdate = (event: Event) => {
+      setNotificationsCleared(false)
+      const customEvent = event as CustomEvent
+      const action = customEvent.detail?.action
+      const budgetName = customEvent.detail?.budget?.name || customEvent.detail?.budget?.category || 'Budget'
+
+      if (action === 'update') {
+        addActivityNotification(`${budgetName} limit updated.`, { severity: 'info', type: 'budget' })
+      } else if (action === 'create') {
+        addActivityNotification(`${budgetName} created.`, { severity: 'info', type: 'budget' })
+      } else if (action === 'delete') {
+        addActivityNotification(`${budgetName} removed.`, { severity: 'warning', type: 'budget' })
+      } else {
+        addActivityNotification('Budget data updated.', { severity: 'info', type: 'budget' })
+      }
+
+      fetchNotifications()
+    }
+
+    window.addEventListener('transaction-updated', handleTransactionUpdate)
+    window.addEventListener('budget-updated', handleBudgetUpdate as EventListener)
+
+    return () => {
+      window.removeEventListener('transaction-updated', handleTransactionUpdate)
+      window.removeEventListener('budget-updated', handleBudgetUpdate as EventListener)
+    }
+  }, [user, notificationsCleared, quickStats.todayExpense, quickStats.todayIncome, quickStats.weekExpense, quickStats.weekIncome])
+
+  const displayedNotifications = [...activityNotifications, ...notifications]
+    .sort((a, b) => (a.sortWeight - b.sortWeight) || (b.createdAt - a.createdAt))
 
   return (
     <header className="bg-white dark:bg-slate-900 shadow-sm border-b border-gray-200 dark:border-slate-700 sticky top-0 z-40">
@@ -303,15 +438,26 @@ const Header: React.FC = () => {
                   className="p-2 text-gray-400 dark:text-gray-300 hover:text-gray-600 dark:hover:text-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-md relative"
                 >
                   <Bell className="h-5 w-5" />
-                  {notifications.length > 0 && (
+                  {displayedNotifications.length > 0 && (
                     <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full"></span>
                   )}
                 </button>
 
                 {showNotifications && (
                   <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
-                    <div className="p-4 border-b border-gray-200 dark:border-slate-700">
+                    <div className="p-4 border-b border-gray-200 dark:border-slate-700 flex items-center justify-between gap-2">
                       <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100">Notifications</h3>
+                      <button
+                        onClick={() => {
+                          setNotifications([])
+                          setActivityNotifications([])
+                          setNotificationsError('')
+                          setNotificationsCleared(true)
+                        }}
+                        className="text-xs px-2 py-1 rounded border border-gray-300 dark:border-slate-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-800"
+                      >
+                        Clear All
+                      </button>
                     </div>
                     <div className="max-h-96 overflow-y-auto">
                       {notificationsLoading && (
@@ -320,19 +466,19 @@ const Header: React.FC = () => {
                         </div>
                       )}
 
-                      {!notificationsLoading && notificationsError && notifications.length === 0 && (
+                      {!notificationsLoading && notificationsError && displayedNotifications.length === 0 && (
                         <div className="p-4">
                           <p className="text-sm text-red-600 dark:text-red-400">{notificationsError}</p>
                         </div>
                       )}
 
-                      {!notificationsLoading && !notificationsError && notifications.length === 0 && (
+                      {!notificationsLoading && !notificationsError && displayedNotifications.length === 0 && (
                         <div className="p-4">
                           <p className="text-sm text-gray-500 dark:text-gray-400">No active budget or bill alerts.</p>
                         </div>
                       )}
 
-                      {!notificationsLoading && notifications.map((notification) => (
+                      {!notificationsLoading && displayedNotifications.map((notification) => (
                         <div key={notification.id} className="p-4 hover:bg-gray-50 dark:hover:bg-slate-800 border-b border-gray-100 dark:border-slate-700">
                           <p className={`text-sm ${
                             notification.severity === 'critical'
@@ -358,10 +504,21 @@ const Header: React.FC = () => {
                   }}
                   className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                  <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">
-                      {user?.name?.charAt(0).toUpperCase() || 'U'}
-                    </span>
+                  <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden">
+                    {user?.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user?.name || 'User'}
+                        className="h-full w-full object-cover"
+                        onError={(e) => {
+                          ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                        }}
+                      />
+                    ) : (
+                      <span className="text-white text-sm font-medium">
+                        {user?.name?.charAt(0).toUpperCase() || 'U'}
+                      </span>
+                    )}
                   </div>
                   <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-200">
                     {user?.name || 'User'}
