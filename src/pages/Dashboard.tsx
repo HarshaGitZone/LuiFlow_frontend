@@ -795,6 +795,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { TrendingUp, TrendingDown, IndianRupee, Receipt, BarChart3, Target } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { api, API } from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
 import WelcomeHeader from '../components/WelcomeHeader'
@@ -825,7 +826,28 @@ interface CategoryBreakdown {
   percentage: number;
 }
 
+interface UnusualSpike {
+  key: string;
+  name: string;
+  expenses: number;
+  averageExpenses: number;
+  deltaFromAverage: number;
+  ratioToAverage: number | null;
+  severity: 'medium' | 'high';
+}
+
+interface BudgetOverrunAlert {
+  id: string;
+  name: string;
+  category: string;
+  amount: number;
+  spent: number;
+  overBy: number;
+  utilizationPct: number;
+}
+
 const Dashboard: React.FC = () => {
+  const navigate = useNavigate()
   const { formatAmount, formatAmountWithSign } = useCurrency()
   const { formatDate } = useDateFormatter()
   const [summary, setSummary] = useState({ totalIncome: 0, totalExpenses: 0, netFlow: 0 })
@@ -839,12 +861,31 @@ const Dashboard: React.FC = () => {
     transactionCount: 0
   })
   const [monthlyCategories, setMonthlyCategories] = useState<CategoryBreakdown[]>([])
+  const [unusualSpikes, setUnusualSpikes] = useState<UnusualSpike[]>([])
+  const [budgetOverruns, setBudgetOverruns] = useState<BudgetOverrunAlert[]>([])
+  const [spikeScope, setSpikeScope] = useState<'last-month' | 'all-time' | 'none'>('none')
   const [allTimeStats, setAllTimeStats] = useState({
     totalTransactions: 0,
     avgMonthlyExpense: 0,
     highestExpenseCategory: 'N/A'
   })
   const [loading, setLoading] = useState<boolean>(true)
+
+  const buildLastMonthRange = () => {
+    const now = new Date()
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const end = new Date(now.getFullYear(), now.getMonth(), 0)
+    return {
+      startDate: start.toISOString().split('T')[0],
+      endDate: end.toISOString().split('T')[0]
+    }
+  }
+
+  const navigateToTransactions = (params: Record<string, string>) => {
+    const query = new URLSearchParams(params)
+    const queryString = query.toString()
+    navigate(queryString ? `/transactions?${queryString}` : '/transactions')
+  }
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -868,6 +909,7 @@ const Dashboard: React.FC = () => {
 
         const analyticsData = analyticsResponse.data
         const topExpenseCategories = analyticsData.expenseCategories.slice(0, 5)
+        const lastMonthSpikes = Array.isArray(analyticsData.unusualSpikes) ? analyticsData.unusualSpikes : []
         const monthlyNetFlow = analyticsData.summary.totalIncome - analyticsData.summary.totalExpenses
         const monthlySavingsRate = analyticsData.summary.totalIncome > 0 
           ? ((monthlyNetFlow / analyticsData.summary.totalIncome) * 100).toFixed(1)
@@ -888,8 +930,34 @@ const Dashboard: React.FC = () => {
           percentage: cat.percentage
         })))
 
-        const allTimeResponse = await api.get(API.ANALYTICS)
+        const [allTimeResponse, budgetsResponse] = await Promise.all([
+          api.get(API.ANALYTICS),
+          api.get(API.BUDGETS)
+        ])
         const allTimeData = allTimeResponse.data
+        const allTimeSpikes = Array.isArray(allTimeData.unusualSpikes) ? allTimeData.unusualSpikes : []
+        const budgetRows = Array.isArray(budgetsResponse.data) ? budgetsResponse.data : []
+        const overruns = budgetRows
+          .map((budget: any) => {
+            const amount = Number(budget.amount) || 0
+            const spent = Number(budget.spent) || 0
+            if (amount <= 0 || spent <= amount) return null
+            const overBy = spent - amount
+            const utilizationPct = Math.round((spent / amount) * 100)
+            return {
+              id: budget._id || `${budget.category}-${budget.name}`,
+              name: budget.name || budget.category || 'Budget',
+              category: budget.category || '',
+              amount,
+              spent,
+              overBy,
+              utilizationPct
+            } as BudgetOverrunAlert
+          })
+          .filter(Boolean)
+          .sort((a: any, b: any) => b.overBy - a.overBy)
+          .slice(0, 5) as BudgetOverrunAlert[]
+        setBudgetOverruns(overruns)
         const avgMonthlyExpense = allTimeData.summary.totalExpenses > 0 
           ? Math.round(allTimeData.summary.totalExpenses / 12)
           : 0
@@ -899,6 +967,17 @@ const Dashboard: React.FC = () => {
           avgMonthlyExpense,
           highestExpenseCategory: allTimeData.expenseCategories.length > 0 ? allTimeData.expenseCategories[0].category : 'N/A'
         })
+
+        if (lastMonthSpikes.length > 0) {
+          setUnusualSpikes(lastMonthSpikes)
+          setSpikeScope('last-month')
+        } else if (allTimeSpikes.length > 0) {
+          setUnusualSpikes(allTimeSpikes)
+          setSpikeScope('all-time')
+        } else {
+          setUnusualSpikes([])
+          setSpikeScope('none')
+        }
 
       } catch (error) {
         console.error('Error fetching dashboard data:', error)
@@ -923,7 +1002,10 @@ const Dashboard: React.FC = () => {
       <WelcomeHeader />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-lg shadow">
+        <div
+          className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-lg shadow cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigateToTransactions({ type: 'income' })}
+        >
           <div className="flex items-center">
             <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
               <IndianRupee className="h-5 w-5 sm:h-6 sm:w-6 text-green-600 dark:text-green-400" />
@@ -935,7 +1017,10 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-lg shadow">
+        <div
+          className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-lg shadow cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigateToTransactions({ type: 'expense' })}
+        >
           <div className="flex items-center">
             <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
               <TrendingDown className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400" />
@@ -947,7 +1032,10 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-lg shadow">
+        <div
+          className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-lg shadow cursor-pointer hover:shadow-md transition-shadow"
+          onClick={() => navigateToTransactions({})}
+        >
           <div className="flex items-center">
             <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
               <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
@@ -997,7 +1085,13 @@ const Dashboard: React.FC = () => {
         <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-lg shadow">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3 sm:mb-4">Analytics Summary</h2>
           <div className="space-y-2 sm:space-y-3">
-            <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800">
+            <div
+              className="flex justify-between items-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-200 dark:border-green-800 cursor-pointer"
+              onClick={() => {
+                const range = buildLastMonthRange()
+                navigateToTransactions({ type: 'income', startDate: range.startDate, endDate: range.endDate })
+              }}
+            >
               <div className="flex flex-col">
                 <span className="text-xs sm:text-sm text-green-800 dark:text-green-200 font-semibold">Last Month Income</span>
                 <span className="text-xs text-green-600 dark:text-green-400">Transactions: {monthlyStats.transactionCount}</span>
@@ -1007,7 +1101,13 @@ const Dashboard: React.FC = () => {
               </span>
             </div>
 
-            <div className="flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+            <div
+              className="flex justify-between items-center p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800 cursor-pointer"
+              onClick={() => {
+                const range = buildLastMonthRange()
+                navigateToTransactions({ type: 'expense', startDate: range.startDate, endDate: range.endDate })
+              }}
+            >
               <div className="flex flex-col">
                 <span className="text-xs sm:text-sm text-red-800 dark:text-red-200 font-semibold">Last Month Expenses</span>
                 <span className="text-xs text-red-600 dark:text-red-400">Total spent</span>
@@ -1027,7 +1127,19 @@ const Dashboard: React.FC = () => {
               </span>
             </div>
 
-            <div className="flex justify-between items-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+            <div
+              className="flex justify-between items-center p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800 cursor-pointer"
+              onClick={() => {
+                const range = buildLastMonthRange()
+                const category = monthlyStats.topCategory && monthlyStats.topCategory !== 'None' ? monthlyStats.topCategory : ''
+                navigateToTransactions({
+                  type: 'expense',
+                  ...(category ? { category } : {}),
+                  startDate: range.startDate,
+                  endDate: range.endDate
+                })
+              }}
+            >
               <div className="flex flex-col">
                 <span className="text-xs sm:text-sm text-orange-800 dark:text-orange-200 font-semibold">Top Spend Category</span>
                 <span className="text-xs text-orange-600 dark:text-orange-400">Most expenses</span>
@@ -1038,6 +1150,68 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-lg shadow">
+        <div className="mb-3">
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Expense Spikes & Budget Overruns</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400">
+            {spikeScope === 'last-month' ? 'Scope: Last month' : spikeScope === 'all-time' ? 'Scope: All time (fallback)' : 'Scope: No spikes detected yet'}
+          </p>
+        </div>
+        <div className="mb-3">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Unusual Spikes</h3>
+        </div>
+        {unusualSpikes.length > 0 ? (
+          <div className="space-y-2">
+            {unusualSpikes.map((spike) => (
+              <div key={spike.key} className="flex items-center justify-between p-3 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20">
+                <div className="min-w-0 pr-3">
+                  <p className="text-sm font-semibold text-red-800 dark:text-red-200 truncate">{spike.name}</p>
+                  <p className="text-xs text-red-600 dark:text-red-300">
+                    {spike.ratioToAverage ? `${spike.ratioToAverage}x avg` : 'Above average'} | +{formatAmount(spike.deltaFromAverage)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="text-xs sm:text-sm font-semibold text-red-700 dark:text-red-300 underline"
+                  onClick={() => navigateToTransactions({ type: 'expense', startDate: spike.key, endDate: spike.key })}
+                >
+                  {formatAmount(spike.expenses)}
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600 dark:text-gray-300">No unusual spikes found in your current data yet.</p>
+        )}
+
+        <div className="mt-5 mb-3">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Budget Overruns</h3>
+        </div>
+        {budgetOverruns.length > 0 ? (
+          <div className="space-y-2">
+            {budgetOverruns.map((alert) => (
+              <div key={alert.id} className="flex items-center justify-between p-3 rounded-lg border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20">
+                <div className="min-w-0 pr-3">
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 truncate">{alert.name}</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    {alert.utilizationPct}% used | Over by {formatAmount(alert.overBy)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="text-xs sm:text-sm font-semibold text-amber-700 dark:text-amber-300 underline"
+                  onClick={() => navigateToTransactions({ type: 'expense', ...(alert.category ? { category: alert.category } : {}) })}
+                >
+                  {formatAmount(alert.spent)} / {formatAmount(alert.amount)}
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600 dark:text-gray-300">No budget categories are over limit right now.</p>
+        )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">

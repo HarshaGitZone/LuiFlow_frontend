@@ -339,8 +339,16 @@ const Header: React.FC = () => {
       const customEvent = event as CustomEvent
       const action = customEvent.detail?.action
       const budgetName = customEvent.detail?.budget?.name || customEvent.detail?.budget?.category || 'Budget'
+      const isOverrun = Boolean(customEvent.detail?.overrun || customEvent.detail?.budget?.status === 'over')
+      const amount = Number(customEvent.detail?.budget?.amount) || 0
+      const spent = Number(customEvent.detail?.budget?.spent) || 0
 
-      if (action === 'update') {
+      if (isOverrun && amount > 0 && spent > amount) {
+        addActivityNotification(
+          `${budgetName} exceeded by ${formatAmount(spent - amount, { maximumFractionDigits: 0, minimumFractionDigits: 0 })}.`,
+          { severity: 'critical', type: 'budget' }
+        )
+      } else if (action === 'update') {
         addActivityNotification(`${budgetName} limit updated.`, { severity: 'info', type: 'budget' })
       } else if (action === 'create') {
         addActivityNotification(`${budgetName} created.`, { severity: 'info', type: 'budget' })

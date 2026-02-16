@@ -42,13 +42,13 @@ const Transactions: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [searchTerm, setSearchTerm] = useState<string>(searchParams.get('search') || '')
-  const [typeFilter, setTypeFilter] = useState<string>('')
-  const [categoryFilter, setCategoryFilter] = useState<string>('')
+  const [typeFilter, setTypeFilter] = useState<string>(searchParams.get('type') || '')
+  const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('category') || '')
   const [showFilters, setShowFilters] = useState<boolean>(false)
-  const [dateFilterMode, setDateFilterMode] = useState<DateFilterMode>('range')
-  const [singleDate, setSingleDate] = useState<string>('')
-  const [startDate, setStartDate] = useState<string>('')
-  const [endDate, setEndDate] = useState<string>('')
+  const [dateFilterMode, setDateFilterMode] = useState<DateFilterMode>(searchParams.get('singleDate') ? 'single' : 'range')
+  const [singleDate, setSingleDate] = useState<string>(searchParams.get('singleDate') || '')
+  const [startDate, setStartDate] = useState<string>(searchParams.get('startDate') || '')
+  const [endDate, setEndDate] = useState<string>(searchParams.get('endDate') || '')
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [totalPages, setTotalPages] = useState<number>(1)
   const [totalResults, setTotalResults] = useState<number>(0)
@@ -129,9 +129,30 @@ const Transactions: React.FC = () => {
   }, [currentPage, typeFilter, categoryFilter, searchTerm, dateFilterMode, singleDate, startDate, endDate])
 
   useEffect(() => {
-    const urlSearchTerm = searchParams.get('search')
-    if (urlSearchTerm !== searchTerm) {
-      setSearchTerm(urlSearchTerm || '')
+    const nextSearch = searchParams.get('search') || ''
+    const nextType = searchParams.get('type') || ''
+    const nextCategory = searchParams.get('category') || ''
+    const nextSingleDate = searchParams.get('singleDate') || ''
+    const nextStartDate = searchParams.get('startDate') || ''
+    const nextEndDate = searchParams.get('endDate') || ''
+    const nextDateMode: DateFilterMode = nextSingleDate ? 'single' : 'range'
+
+    if (
+      nextSearch !== searchTerm ||
+      nextType !== typeFilter ||
+      nextCategory !== categoryFilter ||
+      nextSingleDate !== singleDate ||
+      nextStartDate !== startDate ||
+      nextEndDate !== endDate ||
+      nextDateMode !== dateFilterMode
+    ) {
+      setSearchTerm(nextSearch)
+      setTypeFilter(nextType)
+      setCategoryFilter(nextCategory)
+      setSingleDate(nextSingleDate)
+      setStartDate(nextStartDate)
+      setEndDate(nextEndDate)
+      setDateFilterMode(nextDateMode)
       setCurrentPage(1)
     }
   }, [searchParams])

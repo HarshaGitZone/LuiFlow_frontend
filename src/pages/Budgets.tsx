@@ -636,7 +636,7 @@
 // export default Budgets
 
 import React, { useEffect, useMemo, useState, ChangeEvent } from 'react'
-import { Plus, Edit2, Trash2, X, AlertCircle, PiggyBank, TrendingUp, Wallet, Calendar, PieChart } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, AlertCircle, AlertTriangle, PiggyBank, TrendingUp, Wallet, Calendar, PieChart } from 'lucide-react'
 import { api } from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
 
@@ -686,6 +686,7 @@ const Budgets: React.FC = () => {
   const [addForm, setAddForm] = useState<BudgetForm>(INITIAL_FORM)
   const [editForm, setEditForm] = useState<BudgetForm>(INITIAL_FORM)
   const [formErrors, setFormErrors] = useState<FormErrors>({})
+  const [notice, setNotice] = useState<string>('')
 
   useEffect(() => {
     fetchBudgets()
@@ -738,7 +739,6 @@ const Budgets: React.FC = () => {
 
     const spent = Number(formData.spent || 0)
     if (spent < 0) errors.spent = 'Spent cannot be negative'
-    if (amount > 0 && spent > amount) errors.spent = 'Spent cannot exceed amount'
     return errors
   }
 
@@ -763,6 +763,18 @@ const Budgets: React.FC = () => {
   }
 
   const formatCurrency = (amount: number) => formatAmount(Number(amount) || 0, { maximumFractionDigits: 0, minimumFractionDigits: 0 })
+
+  const maybeNotifyOverrun = (budgetLike: Partial<Budget>) => {
+    const amount = Number(budgetLike.amount) || 0
+    const spent = Number(budgetLike.spent) || 0
+    if (amount > 0 && spent > amount) {
+      const overBy = spent - amount
+      const budgetName = String(budgetLike.name || 'Budget')
+      const message = `${budgetName} is over budget by ${formatCurrency(overBy)}`
+      setNotice(message)
+      window.dispatchEvent(new CustomEvent('budget-overrun', { detail: { message, budget: budgetLike } }))
+    }
+  }
 
   const overview = useMemo(() => {
     const totalBudget = budgets.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
@@ -789,8 +801,13 @@ const Budgets: React.FC = () => {
       })
       
       window.dispatchEvent(new CustomEvent('budget-updated', {
-        detail: { action: 'create', budget: response.data }
+        detail: {
+          action: 'create',
+          budget: response.data,
+          overrun: response.data?.status === 'over'
+        }
       }))
+      maybeNotifyOverrun(response.data)
       
       setShowAddModal(false)
       setAddForm(INITIAL_FORM)
@@ -833,8 +850,13 @@ const Budgets: React.FC = () => {
       })
       
       window.dispatchEvent(new CustomEvent('budget-updated', {
-        detail: { action: 'update', budget: response.data }
+        detail: {
+          action: 'update',
+          budget: response.data,
+          overrun: response.data?.status === 'over'
+        }
       }))
+      maybeNotifyOverrun(response.data)
       
       setShowEditModal(false)
       setEditingBudget(null)
@@ -964,6 +986,11 @@ const Budgets: React.FC = () => {
                     />
                   </div>
                   {formErrors.spent && <p className="text-xs text-red-600 mt-1.5 ml-1">{formErrors.spent}</p>}
+                  {Number(form.amount) > 0 && Number(form.spent || 0) > Number(form.amount) && (
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-1.5 ml-1">
+                      Spent exceeds budget. This is allowed and will be marked as Over Budget.
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1030,6 +1057,21 @@ const Budgets: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50/50 dark:bg-slate-900 p-3 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-8">
+        {notice && (
+          <div className="rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-4 py-3 flex items-start justify-between gap-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" />
+              <p className="text-sm text-red-800 dark:text-red-200">{notice}</p>
+            </div>
+            <button
+              type="button"
+              className="text-xs text-red-700 dark:text-red-300 underline"
+              onClick={() => setNotice('')}
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
 
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -1171,6 +1213,7 @@ const Budgets: React.FC = () => {
                 const progress = amount > 0 ? Math.min(100, Math.round((spent / amount) * 100)) : 0
                 const status = budget.status || getStatus(spent, amount)
                 const statusColorClass = getStatusColor(status)
+                const isOver = status === 'over'
 
                 return (
                   <div
@@ -1184,6 +1227,7 @@ const Budgets: React.FC = () => {
                       <div className="flex justify-between items-start mb-6">
                         <div>
                           <span className={`inline-flex items-center px-3 py-1 rounded-lg text-xs font-semibold ${statusColorClass} mb-3`}>
+                            {isOver && <AlertTriangle className="h-3.5 w-3.5 mr-1" />}
                             {getStatusLabel(status)}
                           </span>
                           <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-words">
@@ -1233,10 +1277,10 @@ const Budgets: React.FC = () => {
                         <div>
                           <div className="flex justify-between text-xs font-medium mb-2">
                             <span className={`${progress >= 100 ? 'text-red-600' : 'text-gray-600 dark:text-gray-300'}`}>
-                              {progress}% Used
+                              {amount > 0 ? `${Math.round((spent / amount) * 100)}% Used` : '0% Used'}
                             </span>
-                            <span className="text-gray-500 dark:text-gray-400">
-                              {formatCurrency(remaining)} left
+                            <span className={`${isOver ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                              {isOver ? `${formatCurrency(Math.abs(remaining))} over` : `${formatCurrency(remaining)} left`}
                             </span>
                           </div>
                           <div className="h-3 w-full bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden p-0.5">
