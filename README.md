@@ -5,6 +5,8 @@ LuiFlow is a full-stack personal finance web app for tracking transactions, budg
 ---
 ## Deployed Website Link
 https://finflow-steel-delta.vercel.app/
+
+---
 ## Table of Contents
 - [Features](#features)
 - [Tech Stack](#tech-stack)
