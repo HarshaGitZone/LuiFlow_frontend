@@ -218,7 +218,7 @@ const Header: React.FC = () => {
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-400 dark:from-blue-400 dark:to-blue-200">
-                  LuiFlow
+                  FinFlow
                 </span>
                 <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium tracking-wider uppercase leading-none">
                   Beyond the Budget

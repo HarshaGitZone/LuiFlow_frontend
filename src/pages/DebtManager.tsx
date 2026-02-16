@@ -2439,7 +2439,7 @@ const DebtManager: React.FC = () => {
                       <div className="flex flex-wrap items-center gap-2 mt-3 sm:mt-0 sm:ml-4">
                         <button
                           onClick={() => handleViewDetail(debt)}
-                          className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg transition-colors text-sm"
+                          className="flex items-center gap-1 px-3 py-1.5 bg-primary-bg dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 text-primary-dark dark:text-primary-light border border-primary rounded-lg transition-colors text-sm font-medium"
                         >
                           <Eye className="h-3.5 w-3.5" />
                           <span className="hidden sm:inline">Details</span>
@@ -2488,13 +2488,13 @@ const DebtManager: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 mb-8 mt-6">
             <div className="p-4 sm:p-6">
               <div className="flex items-center mb-4">
-                <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400 mr-2" />
+                <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400 mr-2" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Global Debt Projection</h3>
               </div>
               
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Calculate Future Impact</h4>
+                <div className="bg-primary-bg dark:bg-slate-800 rounded-lg p-4 border border-primary">
+                  <h4 className="font-semibold text-primary-dark dark:text-primary-light mb-3">Calculate Future Impact</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Time Period</label>
@@ -2504,7 +2504,7 @@ const DebtManager: React.FC = () => {
                         step="0.1"
                         value={globalProjectionTime}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => setGlobalProjectionTime(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
                         placeholder="Enter time"
                       />
                     </div>
@@ -2513,7 +2513,7 @@ const DebtManager: React.FC = () => {
                       <select
                         value={globalProjectionUnit}
                         onChange={(e: ChangeEvent<HTMLSelectElement>) => setGlobalProjectionUnit(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-800 dark:text-gray-100"
                       >
                         <option value="months">Months</option>
                         <option value="years">Years</option>
@@ -2522,14 +2522,14 @@ const DebtManager: React.FC = () => {
                   </div>
                   <button
                     onClick={calculateGlobalProjection}
-                    className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                    className="w-full px-4 py-2 bg-primary hover:bg-primary-dark text-white rounded-lg transition-colors font-semibold shadow-sm"
                   >
                     Calculate Total Projection
                   </button>
                 </div>
 
-                <div className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Projection Results</h4>
+                <div className="bg-white dark:bg-slate-800 rounded-lg p-4 border border-gray-200 dark:border-slate-700">
+                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Projection Results</h4>
                   {globalProjection ? (
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
@@ -2538,12 +2538,12 @@ const DebtManager: React.FC = () => {
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600 dark:text-gray-400">Projected Interest:</span>
-                        <span className="font-bold text-purple-600 dark:text-purple-400">{formatCurrency(globalProjection.projectedInterest)}</span>
+                        <span className="font-bold text-primary dark:text-primary-light">{formatCurrency(globalProjection.projectedInterest)}</span>
                       </div>
                       <div className="h-px bg-gray-200 dark:bg-slate-600 my-2"></div>
                       <div className="flex justify-between items-center">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Future Total Amount:</span>
-                        <span className="text-lg font-bold text-purple-700 dark:text-purple-300">{formatCurrency(globalProjection.futureTotal)}</span>
+                        <span className="text-lg font-bold text-primary-dark dark:text-primary-light">{formatCurrency(globalProjection.futureTotal)}</span>
                       </div>
                       <div className="mt-3 p-2 bg-white/50 dark:bg-slate-800/50 rounded text-xs text-gray-600 dark:text-gray-400">
                         <strong>Projection for:</strong> {globalProjection.timePeriod}
@@ -2942,26 +2942,26 @@ const DebtDetailModal: React.FC<DebtDetailModalProps> = ({ debt, onClose, onEdit
 
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Interest Calculation</h3>
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-              <p className="text-sm text-gray-700 dark:text-gray-300">{debt.calculationExplanation}</p>
+            <div className="bg-primary-bg dark:bg-slate-800 rounded-lg p-4 border border-primary">
+              <p className="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{debt.calculationExplanation}</p>
             </div>
           </div>
 
           <div className="mb-8">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Future Projection</h3>
-            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+            <div className="bg-primary-bg dark:bg-slate-800 rounded-lg p-4 border border-primary">
               <div className="flex items-center mb-2">
-                <TrendingUp className="h-5 w-5 text-purple-600 dark:text-purple-400 mr-2" />
-                <h4 className="font-medium text-gray-900 dark:text-gray-100">If this continues for next 2 years...</h4>
+                <TrendingUp className="h-5 w-5 text-primary dark:text-primary-light mr-2" />
+                <h4 className="font-semibold text-primary-dark dark:text-primary-light">If this continues for next 2 years...</h4>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Projected Interest</p>
-                  <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{formatCurrency(debt.projectedInterest2Years || 0)}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">Projected Interest</p>
+                  <p className="text-lg font-bold text-primary dark:text-primary-light">{formatCurrency(debt.projectedInterest2Years || 0)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Projected Total</p>
-                  <p className="text-lg font-bold text-purple-600 dark:text-purple-400">{formatCurrency(debt.projectedOutstanding2Years || 0)}</p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">Projected Total</p>
+                  <p className="text-lg font-bold text-primary-dark dark:text-primary-light">{formatCurrency(debt.projectedOutstanding2Years || 0)}</p>
                 </div>
               </div>
             </div>

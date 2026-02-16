@@ -2424,23 +2424,23 @@ const SalaryPlanner: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-950 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Salary Planner</h1>
-          <p className="text-gray-600 text-sm sm:text-base">Manage your monthly budget, track expenses, and achieve your savings goals</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Salary Planner</h1>
+          <p className="text-gray-600 dark:text-gray-300 text-sm sm:text-base">Manage your monthly budget, track expenses, and achieve your savings goals</p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center">
               <DollarSign className="h-6 w-6 mr-2 text-blue-600" />
               Monthly Salary
             </h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Salary Amount</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Salary Amount</label>
               <div className="relative">
                 <span className="absolute left-3 top-3 text-gray-500">₹</span>
                 <input
@@ -2451,14 +2451,14 @@ const SalaryPlanner: React.FC = () => {
                     setSalary(prev => ({ ...prev, amount: newAmount }))
                   }}
                   onBlur={() => saveSalaryPlanner({ salary: { ...salary, amount: Number(salary.amount) || 0 } })}
-                  className="w-full pl-8 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-8 pr-3 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-blue-500"
                   placeholder="45000"
                   disabled={saving}
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Credit Date</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Credit Date</label>
               <select
                 value={salary.creditDate}
                 onChange={(e: ChangeEvent<HTMLSelectElement>) => {
@@ -2466,7 +2466,7 @@ const SalaryPlanner: React.FC = () => {
                   setSalary(prev => ({ ...prev, creditDate: newCreditDate }))
                   saveSalaryPlanner({ salary: { ...salary, creditDate: newCreditDate } })
                 }}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
                 disabled={saving}
               >
                 {Array.from({length: 31}, (_, i) => i + 1).map(day => (
@@ -2477,12 +2477,12 @@ const SalaryPlanner: React.FC = () => {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Month</label>
               <input
                 type="month"
                 value={salary.month}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => setSalary(prev => ({ ...prev, month: e.target.value }))}
-                className="w-full px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-3 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
@@ -2490,9 +2490,9 @@ const SalaryPlanner: React.FC = () => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
           {/* Fixed Bills Section */}
-          <div className="bg-white rounded-xl shadow-sm p-6 h-full flex flex-col min-h-[400px]">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 h-full flex flex-col min-h-[400px]">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Fixed Bills</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Fixed Bills</h3>
               <button onClick={() => setShowBillForm(true)} className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center">
                 <Plus className="h-4 w-4 mr-2" /> Add Bill
               </button>
@@ -2500,15 +2500,15 @@ const SalaryPlanner: React.FC = () => {
 
             {showBillForm && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-xl p-6 w-96">
+                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 w-96">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">{editingBill ? 'Edit Bill' : 'Add Bill'}</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{editingBill ? 'Edit Bill' : 'Add Bill'}</h3>
                     <button onClick={() => {setShowBillForm(false); setEditingBill(null)}}><X className="h-5 w-5 text-gray-500" /></button>
                   </div>
                   <div className="space-y-4">
-                    <input type="text" placeholder="Bill name" defaultValue={editingBill?.name || ''} className="w-full px-3 py-2 border border-gray-300 rounded-lg" id="billName" />
-                    <input type="number" placeholder="Amount" defaultValue={editingBill?.amount || ''} className="w-full px-3 py-2 border border-gray-300 rounded-lg" id="billAmount" />
-                    <select defaultValue={editingBill?.dueDate || '01'} className="w-full px-3 py-2 border border-gray-300 rounded-lg" id="billDueDate">
+                    <input type="text" placeholder="Bill name" defaultValue={editingBill?.name || ''} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" id="billName" />
+                    <input type="number" placeholder="Amount" defaultValue={editingBill?.amount || ''} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" id="billAmount" />
+                    <select defaultValue={editingBill?.dueDate || '01'} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100" id="billDueDate">
                       {Array.from({length: 31}, (_, i) => i + 1).map(day => (
                         <option key={day} value={day.toString().padStart(2, '0')}>{day}{day === 1 ? 'st' : 'th'}</option>
                       ))}
@@ -2528,67 +2528,67 @@ const SalaryPlanner: React.FC = () => {
 
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {fixedBills.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">No bills added yet</div>
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">No bills added yet</div>
               ) : (
                 fixedBills.map(bill => (
-                  <div key={bill._id} className={`p-4 border rounded-lg ${bill.status === 'paid' ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                  <div key={bill._id} className={`p-4 border rounded-lg ${bill.status === 'paid' ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-700' : 'bg-yellow-50 border-yellow-200 dark:bg-amber-900/25 dark:border-amber-700'}`}>
                     <div className="flex justify-between items-start">
                       <div>
-                        <h4 className="font-medium text-gray-900">{bill.name}</h4>
-                        <p className="text-sm text-gray-600">{formatCurrency(bill.amount)}</p>
+                        <h4 className="font-medium text-gray-900 dark:text-gray-100">{bill.name}</h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-300">{formatCurrency(bill.amount)}</p>
                       </div>
                       <div className="flex space-x-2">
-                        <button onClick={() => { setEditingBill(bill); setShowBillForm(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded"><Edit2 className="h-4 w-4" /></button>
-                        <button onClick={() => toggleBillStatus(bill._id)} className="p-2 rounded text-green-600"><Check className="h-4 w-4" /></button>
-                        <button onClick={() => deleteBill(bill._id)} className="p-2 text-red-600 hover:bg-red-50 rounded"><Trash2 className="h-4 w-4" /></button>
+                        <button onClick={() => { setEditingBill(bill); setShowBillForm(true); }} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"><Edit2 className="h-4 w-4" /></button>
+                        <button onClick={() => toggleBillStatus(bill._id)} className="p-2 rounded text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"><Check className="h-4 w-4" /></button>
+                        <button onClick={() => deleteBill(bill._id)} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"><Trash2 className="h-4 w-4" /></button>
                       </div>
                     </div>
                   </div>
                 ))
               )}
             </div>
-            <div className="mt-4 pt-4 border-t flex justify-between text-sm">
-              <span className="text-gray-600">Total:</span>
-              <span className="font-semibold text-red-600">{formatCurrency(totalFixedBills)}</span>
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700 flex justify-between text-sm">
+              <span className="text-gray-600 dark:text-gray-300">Total:</span>
+              <span className="font-semibold text-red-600 dark:text-red-400">{formatCurrency(totalFixedBills)}</span>
             </div>
           </div>
 
           {/* Variable Expenses Section */}
-          <div className="bg-white rounded-xl shadow-sm p-6 h-full flex flex-col min-h-[400px]">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Variable Expenses</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 h-full flex flex-col min-h-[400px]">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Variable Expenses</h3>
             <div className="space-y-4 flex-1">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">Current Month Spending</h4>
-                <p className="text-2xl font-bold text-blue-600">{formatCurrency(variableExpenses.totalSpent || 0)}</p>
+              <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Current Month Spending</h4>
+                <p className="text-2xl font-bold text-blue-600 dark:text-rose-300">{formatCurrency(variableExpenses.totalSpent || 0)}</p>
               </div>
-              <div className="p-4 bg-yellow-50 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">Remaining After Bills</h4>
-                <p className="text-2xl font-bold text-yellow-600">{formatCurrency(remainingAfterFixed)}</p>
+              <div className="p-4 bg-yellow-50 dark:bg-amber-900/30 rounded-lg">
+                <h4 className="font-medium text-gray-900 dark:text-amber-100 mb-2">Remaining After Bills</h4>
+                <p className="text-2xl font-bold text-yellow-700 dark:text-amber-300">{formatCurrency(remainingAfterFixed)}</p>
               </div>
-              <div className="p-4 bg-purple-50 rounded-lg">
-                <h4 className="font-medium text-gray-900 mb-2">Available to Spend</h4>
-                <p className="text-2xl font-bold text-purple-600">{formatCurrency(remainingAfterSubscriptions)}</p>
+              <div className="p-4 bg-purple-50 dark:bg-violet-900/35 rounded-lg">
+                <h4 className="font-medium text-gray-900 dark:text-violet-100 mb-2">Available to Spend</h4>
+                <p className="text-2xl font-bold text-purple-700 dark:text-violet-300">{formatCurrency(remainingAfterSubscriptions)}</p>
               </div>
             </div>
           </div>
 
           {/* Safe Spending Meter */}
-          <div className="bg-white rounded-xl shadow-sm p-6 h-full flex flex-col">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Safe Spending Meter</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 h-full flex flex-col">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Safe Spending Meter</h3>
             <div className="text-center flex-1">
               <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">Safe Daily Spending Limit</p>
-                <p className="text-3xl font-bold text-blue-600">{formatCurrency(safeDailySpending)}</p>
-                <p className="text-xs text-gray-500">per day</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">Safe Daily Spending Limit</p>
+                <p className="text-3xl font-bold text-blue-600 dark:text-rose-300">{formatCurrency(safeDailySpending)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">per day</p>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-4 mb-4 overflow-hidden">
+              <div className="w-full bg-gray-200 dark:bg-slate-700 rounded-full h-4 mb-4 overflow-hidden">
                 <div 
                   className={`h-4 rounded-full transition-all ${projectedOverspend > 0 ? 'bg-red-600' : 'bg-green-600'}`}
                   style={{ width: `${Math.min(100, ((variableExpenses.totalSpent || 0) / (safeDailySpending * getDaysLeftInMonth() || 1)) * 100)}%` }}
                 />
               </div>
               {projectedOverspend > 0 && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-300">
                   <AlertTriangle className="h-4 w-4 inline mr-2" /> Projected overspend: {formatCurrency(projectedOverspend)}
                 </div>
               )}
@@ -2596,31 +2596,31 @@ const SalaryPlanner: React.FC = () => {
           </div>
 
           {/* Subscriptions Row */}
-          <div className="bg-white rounded-xl shadow-sm p-6 h-full flex flex-col">
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Subscriptions</h3>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Subscriptions</h3>
               <button onClick={() => setShowSubscriptionForm(true)} className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center">
                 <Plus className="h-4 w-4 mr-2" /> Add
               </button>
             </div>
             <div className="space-y-3 overflow-y-auto flex-1">
               {subscriptions.map(sub => (
-                <div key={sub._id} className="p-3 border rounded-lg bg-purple-50">
+                <div key={sub._id} className="p-3 border rounded-lg bg-purple-50 border-purple-200 dark:bg-violet-900/35 dark:border-violet-700">
                   <div className="flex justify-between items-center">
                     <div>
-                      <h4 className="font-medium text-gray-900 text-sm">{sub.name}</h4>
-                      <p className="text-xs text-purple-600 font-bold">{formatCurrency(sub.monthlyCost)}</p>
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100 text-sm">{sub.name}</h4>
+                      <p className="text-xs text-purple-700 dark:text-violet-300 font-bold">{formatCurrency(sub.monthlyCost)}</p>
                     </div>
-                    <button onClick={() => toggleSubscriptionStatus(sub._id)} className="text-purple-600">
+                    <button onClick={() => toggleSubscriptionStatus(sub._id)} className="text-purple-700 dark:text-violet-300">
                       {sub.status === 'active' ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                     </button>
                   </div>
                 </div>
               ))}
             </div>
-            <div className="mt-4 pt-4 border-t text-sm flex justify-between">
-              <span className="text-gray-600">Total Subs:</span>
-              <span className="font-semibold text-purple-600">{formatCurrency(totalSubscriptionCost)}</span>
+            <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700 text-sm flex justify-between">
+              <span className="text-gray-600 dark:text-gray-300">Total Subs:</span>
+              <span className="font-semibold text-purple-700 dark:text-violet-300">{formatCurrency(totalSubscriptionCost)}</span>
             </div>
           </div>
         </div>
@@ -2657,14 +2657,14 @@ const SalaryPlanner: React.FC = () => {
       {/* Forms for Goals and Subscriptions remain structurally the same as Bills modal example */}
       {showGoalForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-96">
+          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 w-96">
              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-semibold">Add Savings Goal</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Add Savings Goal</h3>
                 <button onClick={() => setShowGoalForm(false)}><X className="h-5 w-5 text-gray-500" /></button>
              </div>
              <div className="space-y-4">
-                <input type="text" id="goalTitle" placeholder="Goal Name" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900" />
-                <input type="number" id="goalTarget" placeholder="Target Amount" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900" />
+                <input type="text" id="goalTitle" placeholder="Goal Name" className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" />
+                <input type="number" id="goalTarget" placeholder="Target Amount" className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" />
                 <button onClick={() => {
                   const title = (document.getElementById('goalTitle') as HTMLInputElement).value;
                   const target = parseFloat((document.getElementById('goalTarget') as HTMLInputElement).value);

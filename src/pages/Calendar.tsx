@@ -800,7 +800,7 @@ const Calendar: React.FC = () => {
         params: {
           startDate: startDate.toISOString().split('T')[0],
           endDate: endDate.toISOString().split('T')[0],
-          limit: 1000 
+          limit: 1000
         }
       })
 
@@ -995,15 +995,15 @@ const Calendar: React.FC = () => {
         <div
           key={day}
           onClick={() => handleZoomDate(date)}
-          className="h-40 border border-gray-200 dark:border-slate-700 p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors relative group bg-white dark:bg-slate-900"
+          className="min-h-[80px] md:min-h-[160px] border border-gray-200 dark:border-slate-700 p-1 md:p-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors relative group bg-white dark:bg-slate-900 flex flex-col justify-between"
         >
-          <div className="flex justify-between items-start mb-2">
-            <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+          <div className="flex justify-between items-start mb-1 md:mb-2">
+            <span className="text-xs md:text-sm font-medium text-gray-900 dark:text-gray-100">
               {day}
             </span>
             <div className="flex items-center space-x-1">
               {dayTransactions.length > 0 && (
-                <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 px-1 rounded">
+                <span className="text-[10px] md:text-xs bg-white dark:bg-slate-800 text-primary-dark dark:text-primary-light border border-primary px-1 rounded font-semibold">
                   {dayTransactions.length}
                 </span>
               )}
@@ -1012,7 +1012,7 @@ const Calendar: React.FC = () => {
                   e.stopPropagation()
                   handleZoomDate(date)
                 }}
-                className="opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-all duration-200"
+                className="hidden md:block opacity-0 group-hover:opacity-100 p-1 hover:bg-gray-200 dark:hover:bg-slate-700 rounded transition-all duration-200"
                 title="Zoom in"
               >
                 <Maximize2 className="h-3 w-3 text-gray-600 dark:text-gray-300" />
@@ -1020,7 +1020,8 @@ const Calendar: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-1 overflow-y-auto max-h-20">
+          {/* Desktop: Show transaction list */}
+          <div className="hidden md:block space-y-1 overflow-y-auto max-h-20">
             {dayTransactions.slice(0, 3).map(transaction => (
               <div
                 key={transaction._id}
@@ -1045,8 +1046,21 @@ const Calendar: React.FC = () => {
             )}
           </div>
 
+          {/* Mobile: Show simple dots/indicators if there are transactions */}
+          <div className="md:hidden flex flex-wrap gap-1 content-end mt-1">
+            {dayTransactions.slice(0, 5).map((t, i) => (
+              <div
+                key={i}
+                className={`w-1.5 h-1.5 rounded-full ${t.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`}
+              />
+            ))}
+            {dayTransactions.length > 5 && (
+              <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+            )}
+          </div>
+
           {(totalIncome > 0 || totalExpense > 0) && (
-            <div className="mt-2 flex justify-between text-xs border-t border-gray-200 dark:border-slate-700 pt-1">
+            <div className="hidden md:flex mt-2 justify-between text-xs border-t border-gray-200 dark:border-slate-700 pt-1">
               {totalIncome > 0 && (
                 <span className="text-green-600 dark:text-green-400 font-medium">+{formatCurrency(totalIncome)}</span>
               )}
@@ -1065,10 +1079,10 @@ const Calendar: React.FC = () => {
   return (
     <div className="p-6">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-4 md:p-6 mb-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex flex-col md:flex-row items-center space-y-4 md:space-y-0 md:space-x-4 w-full md:w-auto">
+              <div className="flex items-center justify-between w-full md:w-auto space-x-2">
                 <button
                   onClick={() => navigateYear('prev')}
                   className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -1086,15 +1100,15 @@ const Calendar: React.FC = () => {
                 </button>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between w-full md:w-auto space-x-2">
                 <button
                   onClick={() => navigateMonth('prev')}
                   className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                 >
                   <ChevronLeft className="h-4 w-4 text-gray-600 dark:text-gray-300" />
                 </button>
-                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-                  {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                <h1 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100 text-center w-32 md:w-auto">
+                  {monthNames[currentDate.getMonth()]}
                 </h1>
                 <button
                   onClick={() => navigateMonth('next')}
@@ -1104,7 +1118,7 @@ const Calendar: React.FC = () => {
                 </button>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="hidden md:flex items-center space-x-2">
                 <button
                   onClick={() => setCurrentDate(new Date())}
                   className="px-3 py-1 text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
@@ -1114,30 +1128,38 @@ const Calendar: React.FC = () => {
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                setFormData({
-                  date: new Date().toISOString().split('T')[0],
-                  description: '',
-                  amount: '',
-                  type: 'expense',
-                  category: ''
-                })
-                setEditingTransaction(null)
-                setShowModal(true)
-              }}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add Transaction</span>
-            </button>
+            <div className="flex w-full md:w-auto gap-2">
+              <button
+                onClick={() => setCurrentDate(new Date())}
+                className="md:hidden flex-1 px-3 py-2 text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-center"
+              >
+                Today
+              </button>
+              <button
+                onClick={() => {
+                  setFormData({
+                    date: new Date().toISOString().split('T')[0],
+                    description: '',
+                    amount: '',
+                    type: 'expense',
+                    category: ''
+                  })
+                  setEditingTransaction(null)
+                  setShowModal(true)
+                }}
+                className="flex-1 md:flex-none flex items-center justify-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add</span>
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-6">
+        <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-700 p-2 md:p-6">
           <div className="grid grid-cols-7 gap-0 mb-2">
             {weekDays.map(day => (
-              <div key={day} className="h-10 flex items-center justify-center text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700">
+              <div key={day} className="h-8 md:h-10 flex items-center justify-center text-xs md:text-sm font-semibold text-gray-700 dark:text-gray-300 border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800">
                 {day}
               </div>
             ))}
@@ -1145,8 +1167,8 @@ const Calendar: React.FC = () => {
 
           <div className="grid grid-cols-7 gap-0">
             {loading ? (
-              <div className="col-span-7 flex items-center justify-center h-96">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+              <div className="col-span-7 flex items-center justify-center h-48 md:h-96">
+                <div className="animate-spin rounded-full h-8 w-8 md:h-12 md:w-12 border-b-2 border-blue-600"></div>
               </div>
             ) : (
               renderCalendarDays()
@@ -1155,8 +1177,8 @@ const Calendar: React.FC = () => {
         </div>
 
         {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white dark:bg-slate-900 rounded-lg p-6 w-full max-w-md">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-slate-900 rounded-lg p-4 md:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                   {editingTransaction ? 'Edit Transaction' : 'Add Transaction'}
@@ -1267,9 +1289,9 @@ const Calendar: React.FC = () => {
         {zoomedDate && (
           <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
             <div className="bg-white dark:bg-slate-900 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-hidden">
-              <div className="p-6 border-b border-gray-200 dark:border-slate-700">
+              <div className="p-4 md:p-6 border-b border-gray-200 dark:border-slate-700">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-gray-100">
                     {formatLongDate(zoomedDate)}
                   </h2>
                   <button
@@ -1281,7 +1303,7 @@ const Calendar: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <div className="p-4 md:p-6 overflow-y-auto max-h-[60vh]">
                 {(() => {
                   const dayTransactions = getTransactionsForDate(zoomedDate)
                   const totalIncome = dayTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + (typeof t.amount === 'number' ? t.amount : 0), 0)
@@ -1304,19 +1326,19 @@ const Calendar: React.FC = () => {
                     </div>
                   ) : (
                     <div>
-                      <div className="mb-6 p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
-                        <div className="grid grid-cols-3 gap-4 text-center">
+                      <div className="mb-6 p-3 md:p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
+                        <div className="grid grid-cols-3 gap-2 md:gap-4 text-center">
                           <div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">Transactions</div>
-                            <div className="text-xl font-bold text-gray-900 dark:text-gray-100">{dayTransactions.length}</div>
+                            <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Transactions</div>
+                            <div className="text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100">{dayTransactions.length}</div>
                           </div>
                           <div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">Income</div>
-                            <div className="text-xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalIncome)}</div>
+                            <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Income</div>
+                            <div className="text-lg md:text-xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalIncome)}</div>
                           </div>
                           <div>
-                            <div className="text-sm text-gray-500 dark:text-gray-400">Expenses</div>
-                            <div className="text-xl font-bold text-red-600 dark:text-red-400">{formatCurrency(totalExpense)}</div>
+                            <div className="text-xs md:text-sm text-gray-500 dark:text-gray-400">Expenses</div>
+                            <div className="text-lg md:text-xl font-bold text-red-600 dark:text-red-400">{formatCurrency(totalExpense)}</div>
                           </div>
                         </div>
                       </div>
