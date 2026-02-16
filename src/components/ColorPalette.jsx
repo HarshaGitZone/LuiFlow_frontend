@@ -3,7 +3,7 @@ import { useTheme } from '../contexts/ThemeContext'
 import { Palette, Check } from 'lucide-react'
 
 const ColorPalette = () => {
-  const { colorPalette, setColorPalette, availableColors } = useTheme()
+  const { colorPalette, setColorPalette, availableColors, isDark } = useTheme()
   const [isOpen, setIsOpen] = useState(false)
 
   const handleColorSelect = (colorKey) => {
@@ -22,7 +22,7 @@ const ColorPalette = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-slate-900 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+        <div className="absolute right-0 mt-2 w-[22rem] max-w-[calc(100vw-1rem)] bg-white dark:bg-slate-900 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
           <div className="p-4 border-b border-gray-200 dark:border-slate-700">
             <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center">
               <Palette className="h-4 w-4 mr-2" />
@@ -31,29 +31,34 @@ const ColorPalette = () => {
           </div>
           
           <div className="p-4">
-            <div className="grid grid-cols-4 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
               {Object.entries(availableColors).map(([key, colors]) => (
                 <button
                   key={key}
                   onClick={() => handleColorSelect(key)}
-                  className={`relative p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 ${
+                  className={`relative p-3 rounded-lg border-2 transition-all duration-200 hover:scale-105 overflow-hidden min-w-0 ${
                     colorPalette === key
-                      ? 'border-gray-900 dark:border-white shadow-md'
-                      : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500'
+                      ? 'border-gray-900 dark:border-slate-100 shadow-md'
+                      : 'border-gray-200 dark:border-slate-500 hover:border-gray-300 dark:hover:border-slate-300'
                   }`}
-                  style={{ backgroundColor: colors.primaryBg }}
+                  style={{
+                    backgroundColor: isDark ? colors.primaryBgDark : colors.primaryBg,
+                    color: isDark ? '#e2e8f0' : '#334155'
+                  }}
                   title={colors.name}
                 >
                   <div
                     className="w-full h-6 rounded-md mb-1"
-                    style={{ backgroundColor: colors.primary }}
+                    style={{
+                      background: `linear-gradient(135deg, ${colors.primary}, ${colors.primaryLight})`
+                    }}
                   />
-                  <div className="text-xs text-center font-medium text-gray-700 dark:text-gray-300">
+                  <div className="text-[11px] leading-tight text-center font-semibold tracking-wide truncate">
                     {colors.name.split(' ')[0]}
                   </div>
                   {colorPalette === key && (
-                    <div className="absolute -top-1 -right-1 bg-white dark:bg-slate-900 rounded-full p-1 border-2 border-gray-900 dark:border-white">
-                      <Check className="h-3 w-3 text-gray-900 dark:text-white" />
+                    <div className="absolute -top-1 -right-1 bg-white dark:bg-slate-900 rounded-full p-1 border-2 border-gray-900 dark:border-slate-100">
+                      <Check className="h-3 w-3 text-gray-900 dark:text-slate-100" />
                     </div>
                   )}
                 </button>

@@ -74,6 +74,38 @@ const colorPalettes = {
     primaryLight: '#94a3b8',
     primaryBg: '#f8fafc',
     primaryBgDark: '#1e293b'
+  },
+  aurora: {
+    name: 'Aurora Lime',
+    primary: '#84cc16',
+    primaryDark: '#4d7c0f',
+    primaryLight: '#a3e635',
+    primaryBg: '#f7fee7',
+    primaryBgDark: '#1a2e05'
+  },
+  ember: {
+    name: 'Ember Coral',
+    primary: '#fb7185',
+    primaryDark: '#be123c',
+    primaryLight: '#fda4af',
+    primaryBg: '#fff1f2',
+    primaryBgDark: '#3e0b16'
+  },
+  nebula: {
+    name: 'Nebula Cyan',
+    primary: '#06b6d4',
+    primaryDark: '#0e7490',
+    primaryLight: '#67e8f9',
+    primaryBg: '#ecfeff',
+    primaryBgDark: '#083344'
+  },
+  magma: {
+    name: 'Magma Rust',
+    primary: '#ea580c',
+    primaryDark: '#9a3412',
+    primaryLight: '#fb923c',
+    primaryBg: '#fff7ed',
+    primaryBgDark: '#3b1308'
   }
 }
 
