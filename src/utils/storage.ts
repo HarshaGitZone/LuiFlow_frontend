@@ -24,6 +24,9 @@ interface CSVImportState {
   importStep?: number;
   importResult?: any;
   dryRunResult?: any;
+  retryRows?: any[];
+  retryFeedback?: string | null;
+  retryError?: string | null;
   currentPage?: number;
   timestamp: number;
 }
@@ -92,6 +95,9 @@ export const csvImportStorage = {
       importStep: state.importStep,
       importResult: state.importResult,
       dryRunResult: state.dryRunResult,
+      retryRows: state.retryRows,
+      retryFeedback: state.retryFeedback,
+      retryError: state.retryError,
       currentPage: state.currentPage,
       timestamp: Date.now()
     }

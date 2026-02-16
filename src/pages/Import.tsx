@@ -560,6 +560,7 @@ interface ValidationError {
   row: number;
   error: string;
   isDuplicate?: boolean;
+  data?: Record<string, any>;
 }
 
 interface ImportResult {
@@ -581,6 +582,12 @@ interface DryRunResult {
     errors: ValidationError[];
     duplicates: ValidationError[];
   };
+}
+
+interface RetryRow {
+  sourceRow: number;
+  originalError: string;
+  values: Record<string, string>;
 }
 
 interface HistoryItem {
@@ -613,6 +620,10 @@ const Import: React.FC = () => {
   const [showHistory, setShowHistory] = useState<boolean>(false)
   const [historyData, setHistoryData] = useState<HistoryItem[]>([])
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false)
+  const [retryRows, setRetryRows] = useState<RetryRow[]>([])
+  const [retryingRows, setRetryingRows] = useState<boolean>(false)
+  const [retryFeedback, setRetryFeedback] = useState<string | null>(null)
+  const [retryError, setRetryError] = useState<string | null>(null)
 
   const formatDateTime = (value: string | Date) => {
     const date = value instanceof Date ? value : new Date(value)
@@ -636,6 +647,9 @@ const Import: React.FC = () => {
           setImportStep(savedState.importStep || 1)
           setImportResult(savedState.importResult)
           setDryRunResult(savedState.dryRunResult)
+          setRetryRows(savedState.retryRows || [])
+          setRetryFeedback(savedState.retryFeedback || null)
+          setRetryError(savedState.retryError || null)
           setCurrentPage(savedState.currentPage || 1)
         }
       } catch (error) {
@@ -657,10 +671,13 @@ const Import: React.FC = () => {
         importStep,
         importResult,
         dryRunResult,
+        retryRows,
+        retryFeedback,
+        retryError,
         currentPage
       })
     }
-  }, [file, preview, columnMapping, importStep, importResult, dryRunResult, currentPage, loadingState])
+  }, [file, preview, columnMapping, importStep, importResult, dryRunResult, retryRows, retryFeedback, retryError, currentPage, loadingState])
 
   const fetchHistory = async () => {
     try {
@@ -690,6 +707,71 @@ const Import: React.FC = () => {
     setImportResult(null)
     setDryRunResult(null)
     setCurrentPage(1)
+    setRetryRows([])
+    setRetryFeedback(null)
+    setRetryError(null)
+  }
+
+  const getRetryHeaders = (): string[] => {
+    const mappedHeaders = [
+      columnMapping.date,
+      columnMapping.amount,
+      columnMapping.type,
+      columnMapping.category,
+      columnMapping.description
+    ]
+
+    return Array.from(new Set(mappedHeaders.filter((header): header is string => Boolean(header))))
+  }
+
+  const createRetryRows = (result: DryRunResult): RetryRow[] => {
+    const retryHeaders = getRetryHeaders()
+
+    return result.validation.errors
+      .filter((errorItem) => !errorItem.isDuplicate && errorItem.data && typeof errorItem.data === 'object')
+      .map((errorItem) => {
+        const sourceData = errorItem.data as Record<string, any>
+        const values: Record<string, string> = {}
+
+        retryHeaders.forEach((header) => {
+          const value = sourceData[header]
+          values[header] = value === undefined || value === null ? '' : String(value)
+        })
+
+        return {
+          sourceRow: errorItem.row,
+          originalError: errorItem.error,
+          values
+        }
+      })
+  }
+
+  const escapeCsvValue = (value: string): string => {
+    if (/[",\n\r]/.test(value)) {
+      return `"${value.replace(/"/g, '""')}"`
+    }
+    return value
+  }
+
+  const buildRetryCsv = (headers: string[], rows: RetryRow[]): string => {
+    const csvHeaders = headers.map(escapeCsvValue).join(',')
+    const csvRows = rows.map((row) => headers.map((header) => escapeCsvValue(row.values[header] || '')).join(','))
+    return [csvHeaders, ...csvRows].join('\n')
+  }
+
+  const refreshRetryRowsFromDryRun = async (retryFile: File) => {
+    const dryRunFormData = new FormData()
+    dryRunFormData.append('file', retryFile)
+    dryRunFormData.append('columnMapping', JSON.stringify(columnMapping))
+
+    const validationResponse = await api.post(API.CSV_DRY_RUN, dryRunFormData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+
+    const latestRetryRows = createRetryRows(validationResponse.data)
+    setRetryRows(latestRetryRows)
   }
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -837,6 +919,9 @@ const Import: React.FC = () => {
         }
       })
       setDryRunResult(response.data)
+      setRetryRows(createRetryRows(response.data))
+      setRetryFeedback(null)
+      setRetryError(null)
       setImportStep(3)
     } catch (error: any) {
       console.error('Dry run error:', error)
@@ -854,6 +939,66 @@ const Import: React.FC = () => {
     setDryRunResult(null)
     setCurrentPage(1)
     setImportStep(1)
+    setRetryRows([])
+    setRetryFeedback(null)
+    setRetryError(null)
+  }
+
+  const updateRetryCell = (rowIndex: number, header: string, value: string) => {
+    setRetryRows((prev) => prev.map((row, index) => {
+      if (index !== rowIndex) return row
+      return {
+        ...row,
+        values: {
+          ...row.values,
+          [header]: value
+        }
+      }
+    }))
+  }
+
+  const handleRetryFailedRows = async () => {
+    const retryHeaders = getRetryHeaders()
+
+    if (retryRows.length === 0 || retryHeaders.length === 0) {
+      return
+    }
+
+    try {
+      setRetryingRows(true)
+      setRetryFeedback(null)
+      setRetryError(null)
+
+      const retryCsv = buildRetryCsv(retryHeaders, retryRows)
+      const originalBaseName = file?.name ? file.name.replace(/\.csv$/i, '') : 'transactions'
+      const retryFile = new File([retryCsv], `${originalBaseName}-failed-rows-retry.csv`, { type: 'text/csv' })
+
+      const importFormData = new FormData()
+      importFormData.append('file', retryFile)
+      importFormData.append('columnMapping', JSON.stringify(columnMapping))
+
+      const importResponse = await api.post(API.CSV_IMPORT, importFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      const insertedRows = importResponse.data?.summary?.insertedRows || 0
+      const remainingErrorRows = importResponse.data?.summary?.errors || 0
+
+      await refreshRetryRowsFromDryRun(retryFile)
+
+      if (insertedRows > 0) {
+        window.dispatchEvent(new CustomEvent('transaction-updated'))
+      }
+
+      setRetryFeedback(`Retry processed ${retryRows.length} row(s): ${insertedRows} imported, ${remainingErrorRows} still failing.`)
+    } catch (error: any) {
+      const message = error.response?.data?.error || error.message || 'Failed to retry failed rows'
+      setRetryError(message)
+    } finally {
+      setRetryingRows(false)
+    }
   }
 
   if (loadingState) {
@@ -1179,6 +1324,71 @@ const Import: React.FC = () => {
                           <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100">{formatDate(t.date)}</td>
                           <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100">{t.description}</td>
                           <td className="px-3 py-2 text-xs text-gray-900 dark:text-gray-100">{formatAmount(t.amount)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {retryRows.length > 0 && (
+              <div className="mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Retry Failed Rows</h3>
+                    <p className="text-xs text-gray-600 dark:text-gray-300">
+                      Correct the failed rows below and retry only these rows.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleRetryFailedRows}
+                    disabled={retryingRows}
+                    className="w-full sm:w-auto px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:bg-gray-400"
+                  >
+                    {retryingRows ? 'Retrying...' : `Retry ${retryRows.length} Failed Row(s)`}
+                  </button>
+                </div>
+
+                {retryFeedback && (
+                  <div className="mb-3 p-3 rounded-lg border border-green-200 bg-green-50 text-sm text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300">
+                    {retryFeedback}
+                  </div>
+                )}
+
+                {retryError && (
+                  <div className="mb-3 p-3 rounded-lg border border-red-200 bg-red-50 text-sm text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                    {retryError}
+                  </div>
+                )}
+
+                <div className="overflow-x-auto border border-gray-200 dark:border-slate-700 rounded-lg">
+                  <table className="min-w-[760px] w-full divide-y divide-gray-200 dark:divide-slate-700">
+                    <thead className="bg-amber-50 dark:bg-slate-800">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase">Row</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase">Error</th>
+                        {getRetryHeaders().map((header) => (
+                          <th key={header} className="px-3 py-2 text-left text-xs font-medium text-gray-600 dark:text-gray-300 uppercase">
+                            {header}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-700">
+                      {retryRows.map((retryRow, rowIndex) => (
+                        <tr key={`${retryRow.sourceRow}-${rowIndex}`} className="align-top">
+                          <td className="px-3 py-3 text-xs font-medium text-gray-900 dark:text-gray-100">{retryRow.sourceRow}</td>
+                          <td className="px-3 py-3 text-xs text-red-700 dark:text-red-300 whitespace-normal min-w-[180px]">{retryRow.originalError}</td>
+                          {getRetryHeaders().map((header) => (
+                            <td key={header} className="px-3 py-3">
+                              <input
+                                value={retryRow.values[header] || ''}
+                                onChange={(e) => updateRetryCell(rowIndex, header, e.target.value)}
+                                className="w-full min-w-[140px] px-2 py-1 text-xs border border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100"
+                              />
+                            </td>
+                          ))}
                         </tr>
                       ))}
                     </tbody>
