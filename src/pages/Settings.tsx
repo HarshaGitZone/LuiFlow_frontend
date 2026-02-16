@@ -1,492 +1,441 @@
-import React, { useState, useEffect } from 'react'
-import { Settings, Bell, Palette, Database, Download, Upload, Trash2 } from 'lucide-react'
-import { useTheme } from '../contexts/ThemeContext'
+﻿import React, { useState, useEffect } from 'react'
+import { Database, Shield, Bell, AlertTriangle, X } from 'lucide-react'
 import { useCurrency } from '../contexts/CurrencyContext'
-import { api } from '../api'
+import { api, API } from '../api'
+import {
+  DATE_FORMAT_OPTIONS,
+  DEFAULT_DATE_FORMAT,
+  DEFAULT_TIME_ZONE,
+  getDatePreferences,
+  saveDatePreferences,
+  formatDateWithPreferences
+} from '../utils/datePreferences'
+import { clearUserData, csvImportStorage } from '../utils/storage'
 
-interface UserSettings {
-  notifications: boolean
-  emailAlerts: boolean
-  darkMode: boolean
-  language: string
-  timezone: string
-  dateFormat: string
-  currency: string
-  autoBackup: boolean
-  dataRetention: number
-}
+const SettingsPage = () => {
+  const { currency, setCurrency } = useCurrency()
+  const [selectedCurrency, setSelectedCurrency] = useState(currency)
+  const [dateFormat, setDateFormat] = useState(DEFAULT_DATE_FORMAT)
+  const [timeZone, setTimeZone] = useState(DEFAULT_TIME_ZONE)
+  const [showClearDialog, setShowClearDialog] = useState(false)
+  const [isClearing, setIsClearing] = useState(false)
 
-const SettingsPage: React.FC = () => {
-  const { isDark, toggleTheme, availableColors, colorPalette, setColorPalette } = useTheme()
-  const { currency, setCurrency, supportedCurrencies } = useCurrency()
-  const [settings, setSettings] = useState<UserSettings>({
-    notifications: true,
-    emailAlerts: true,
-    darkMode: false,
-    language: 'en',
-    timezone: 'UTC',
-    dateFormat: 'MM/DD/YYYY',
-    currency: 'USD',
-    autoBackup: true,
-    dataRetention: 365
-  })
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState('')
-  const [error, setError] = useState('')
-  const [activeTab, setActiveTab] = useState<'general' | 'notifications' | 'appearance' | 'data'>('general')
+  // Password Change State
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [passwordSuccess, setPasswordSuccess] = useState('')
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false)
 
-  useEffect(() => {
-    fetchSettings()
-  }, [])
+  const currencies = [
+    { code: 'INR', symbol: 'INR', name: 'Indian Rupee' },
+    { code: 'USD', symbol: '$', name: 'US Dollar' },
+    { code: 'EUR', symbol: '€', name: 'Euro' },
+    { code: 'GBP', symbol: '£', name: 'British Pound' },
+    { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+    { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+    { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+    { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' }
+  ]
 
-  useEffect(() => {
-    setSettings(prev => ({ ...prev, darkMode: isDark, currency }))
-  }, [isDark, currency])
+  const handleCurrencyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newCurrency = e.target.value
+    setSelectedCurrency(newCurrency)
+    setCurrency(newCurrency)
 
-  const fetchSettings = async () => {
-    try {
-      const response = await api.get('/api/settings')
-      setSettings(response.data || settings)
-    } catch (error) {
-      console.error('Failed to fetch settings:', error)
-    }
+    // Save to localStorage for persistence
+    localStorage.setItem('selectedCurrency', newCurrency)
   }
 
-  const handleSave = async () => {
-    try {
-      setLoading(true)
-      await api.put('/api/settings', settings)
-      setSuccess('Settings saved successfully!')
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (error) {
-      setError('Failed to save settings')
-      setTimeout(() => setError(''), 3000)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const handleUpdatePassword = async () => {
+    setPasswordError('')
+    setPasswordSuccess('')
 
-  const handleExportData = async () => {
-    try {
-      const response = await api.get('/api/export/data', {
-        responseType: 'blob'
-      })
-      
-      const blob = new Blob([response.data], { type: 'application/json' })
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `luiflow-data-${new Date().toISOString().split('T')[0]}.json`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-    } catch (error) {
-      setError('Failed to export data')
-      setTimeout(() => setError(''), 3000)
-    }
-  }
-
-  const handleImportData = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-      
-      await api.post('/api/import/data', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      })
-      
-      setSuccess('Data imported successfully!')
-      setTimeout(() => setSuccess(''), 3000)
-      fetchSettings()
-    } catch (error) {
-      setError('Failed to import data')
-      setTimeout(() => setError(''), 3000)
-    }
-  }
-
-  const handleClearData = async () => {
-    if (!confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All fields are required')
       return
     }
 
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match')
+      return
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters long')
+      return
+    }
+
+    // Regex validation matching backend
+    const hasUpperCase = /[A-Z]/.test(newPassword)
+    const hasLowerCase = /[a-z]/.test(newPassword)
+    const hasNumbers = /\d/.test(newPassword)
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword)
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+      setPasswordError(
+        'Password must contain at least 8 characters including uppercase, lowercase, number, and special character'
+      )
+      return
+    }
+
+    setIsUpdatingPassword(true)
+
     try {
-      await api.delete('/api/data/clear')
-      setSuccess('Data cleared successfully!')
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (error) {
-      setError('Failed to clear data')
-      setTimeout(() => setError(''), 3000)
+      const { data } = await api.put(API.UPDATE_PASSWORD, {
+        currentPassword,
+        newPassword
+      })
+
+      if (data.success) {
+        setPasswordSuccess('Password updated successfully')
+        setCurrentPassword('')
+        setNewPassword('')
+        setConfirmPassword('')
+      } else {
+        setPasswordError(data.message || 'Failed to update password')
+      }
+    } catch (err) {
+      console.error('Password update error:', err)
+      const error = err as { response?: { data?: { message?: string } } }
+      setPasswordError(error.response?.data?.message || 'Failed to update password')
+    } finally {
+      setIsUpdatingPassword(false)
     }
   }
 
-  const updateSetting = (key: keyof UserSettings, value: any) => {
-    setSettings(prev => ({ ...prev, [key]: value }))
+  const handleDateFormatChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newDateFormat = e.target.value
+    setDateFormat(newDateFormat)
+    saveDatePreferences({ dateFormat: newDateFormat, timeZone })
   }
 
+  const handleTimeZoneChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newTimeZone = e.target.value
+    setTimeZone(newTimeZone)
+    saveDatePreferences({ dateFormat, timeZone: newTimeZone })
+  }
+
+  const handleClearData = async () => {
+    setIsClearing(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('/api/clear-all-data', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (response.ok) {
+        // Clear all localStorage data
+        clearUserData()
+        csvImportStorage.clearState()
+
+        // Clear additional localStorage items
+        localStorage.removeItem('selectedCurrency')
+        localStorage.removeItem('user_preferences')
+        localStorage.removeItem('token')
+        localStorage.removeItem('theme')
+        localStorage.removeItem('colorPalette')
+        localStorage.removeItem('currency_rates_from_inr')
+        localStorage.removeItem('currency_rates_updated_at')
+        localStorage.removeItem('sidebar_collapsed')
+        localStorage.removeItem('USER_DATA')
+        localStorage.removeItem('auth_token')
+
+        // Clear any remaining user data
+        Object.keys(localStorage).forEach(key => {
+          if (
+            key.includes('user') ||
+            key.includes('auth') ||
+            key.includes('token') ||
+            key.includes('currency') ||
+            key.includes('theme') ||
+            key.includes('import') ||
+            key.includes('csv') ||
+            key.includes('preferences')
+          ) {
+            localStorage.removeItem(key)
+          }
+        })
+
+        // Redirect to login page
+        window.location.href = '/login'
+      } else {
+        const error = await response.json()
+        alert('Failed to clear data: ' + (error.error || 'Unknown error'))
+      }
+    } catch (error) {
+      console.error('Error clearing data:', error)
+      alert('Failed to clear data. Please try again.')
+    } finally {
+      setIsClearing(false)
+      setShowClearDialog(false)
+    }
+  }
+
+  useEffect(() => {
+    // Load saved currency from localStorage
+    const savedCurrency = localStorage.getItem('selectedCurrency')
+    if (savedCurrency) {
+      setSelectedCurrency(savedCurrency)
+      setCurrency(savedCurrency)
+    }
+
+    const savedDatePreferences = getDatePreferences()
+    setDateFormat(savedDatePreferences.dateFormat)
+    setTimeZone(savedDatePreferences.timeZone)
+  }, [setCurrency])
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Settings</h1>
-        <p className="text-gray-600 dark:text-gray-400">Manage your application preferences</p>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-gray-900">Settings</h1>
       </div>
 
-      {/* Error/Success Messages */}
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-md">
-          {error}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">General</h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
+              <select
+                value={selectedCurrency}
+                onChange={handleCurrencyChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {currencies.map(curr => (
+                  <option key={curr.code} value={curr.code}>
+                    {curr.code} - {curr.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
+              <select
+                value={dateFormat}
+                onChange={handleDateFormatChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {DATE_FORMAT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Preview: {formatDateWithPreferences(new Date('2026-02-16T10:30:00Z'), { dateFormat, timeZone })}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Time Zone</label>
+              <select
+                value={timeZone}
+                onChange={handleTimeZoneChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">America/New_York</option>
+                <option value="America/Chicago">America/Chicago</option>
+                <option value="America/Los_Angeles">America/Los_Angeles</option>
+                <option value="Europe/London">Europe/London</option>
+                <option value="Asia/Kolkata">Asia/Kolkata</option>
+                <option value="Asia/Tokyo">Asia/Tokyo</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Data Management</h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg">
+              <div className="flex items-center">
+                <Database className="h-5 w-5 text-red-600 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-red-900">Clear All Data</p>
+                  <p className="text-xs text-red-500">Delete all transactions, debts, budgets, imports, exports, and reset everything</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowClearDialog(true)}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center"
+              >
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-lg shadow">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Notifications</h2>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Bell className="h-5 w-5 text-gray-600 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Budget Alerts</p>
+                  <p className="text-xs text-gray-500">Get notified when nearing budget limits</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" defaultChecked />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-checked:after:translate-x-full"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Bell className="h-5 w-5 text-gray-600 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Weekly Reports</p>
+                  <p className="text-xs text-gray-500">Receive weekly spending summaries</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-checked:after:translate-x-full"></div>
+              </label>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <Bell className="h-5 w-5 text-gray-600 mr-3" />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Unusual Spending</p>
+                  <p className="text-xs text-gray-500">Alert for abnormal transactions</p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" defaultChecked />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-checked:after:translate-x-full"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Security</h2>
+        <div className="space-y-4">
+          {passwordError && (
+            <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+              {passwordError}
+            </div>
+          )}
+          {passwordSuccess && (
+            <div className="p-3 bg-green-50 text-green-700 rounded-lg text-sm">
+              {passwordSuccess}
+            </div>
+          )}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Current Password</label>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter current password"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">New Password</label>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Enter new password (min 8 chars, uppercase, lowercase, number, special)"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Confirm new password"
+            />
+          </div>
+          <button
+            onClick={handleUpdatePassword}
+            disabled={isUpdatingPassword}
+            className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center disabled:opacity-50"
+          >
+            {isUpdatingPassword ? (
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+            ) : (
+              <Shield className="h-4 w-4 mr-2" />
+            )}
+            Update Password
+          </button>
+        </div>
+      </div>
+
+      {/* Clear Data Confirmation Dialog */}
+      {showClearDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center mb-4">
+              <AlertTriangle className="h-6 w-6 text-red-600 mr-3" />
+              <h3 className="text-lg font-semibold text-gray-900">Clear All Data</h3>
+              <button
+                onClick={() => setShowClearDialog(false)}
+                className="ml-auto text-gray-400 hover:text-gray-600"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-700 mb-2">
+                <strong>Warning:</strong> This action cannot be undone and will permanently delete:
+              </p>
+              <ul className="list-disc list-inside text-sm text-gray-600 mt-2 space-y-1">
+                <li>All transactions and calendar data</li>
+                <li>All debts and payment history</li>
+                <li>All budgets and budget tracking</li>
+                <li>All salary planner data</li>
+                <li>All import history and CSV import state</li>
+                <li>All export functionality and saved exports</li>
+                <li>All user preferences and settings</li>
+                <li>Theme and currency settings</li>
+                <li>You will be logged out and need to login again</li>
+              </ul>
+            </div>
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowClearDialog(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                disabled={isClearing}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearData}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center"
+                disabled={isClearing}
+              >
+                {isClearing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Clearing...
+                  </>
+                ) : (
+                  'Clear All Data'
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
-
-      {success && (
-        <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 px-4 py-3 rounded-md">
-          {success}
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow">
-        <div className="border-b border-gray-200 dark:border-slate-700">
-          <nav className="flex -mb-px">
-            <button
-              onClick={() => setActiveTab('general')}
-              className={`py-2 px-4 border-b-2 font-medium text-sm ${
-                activeTab === 'general'
-                  ? 'border-primary dark:border-primary-light text-primary dark:text-primary-light'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <Settings className="h-4 w-4 mr-2 inline" />
-              General
-            </button>
-            <button
-              onClick={() => setActiveTab('notifications')}
-              className={`py-2 px-4 border-b-2 font-medium text-sm ${
-                activeTab === 'notifications'
-                  ? 'border-primary dark:border-primary-light text-primary dark:text-primary-light'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <Bell className="h-4 w-4 mr-2 inline" />
-              Notifications
-            </button>
-            <button
-              onClick={() => setActiveTab('appearance')}
-              className={`py-2 px-4 border-b-2 font-medium text-sm ${
-                activeTab === 'appearance'
-                  ? 'border-primary dark:border-primary-light text-primary dark:text-primary-light'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <Palette className="h-4 w-4 mr-2 inline" />
-              Appearance
-            </button>
-            <button
-              onClick={() => setActiveTab('data')}
-              className={`py-2 px-4 border-b-2 font-medium text-sm ${
-                activeTab === 'data'
-                  ? 'border-primary dark:border-primary-light text-primary dark:text-primary-light'
-                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-              }`}
-            >
-              <Database className="h-4 w-4 mr-2 inline" />
-              Data Management
-            </button>
-          </nav>
-        </div>
-
-        <div className="p-6">
-          {/* General Tab */}
-          {activeTab === 'general' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">General Settings</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Language
-                    </label>
-                    <select
-                      value={settings.language}
-                      onChange={(e) => updateSetting('language', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
-                    >
-                      <option value="en">English</option>
-                      <option value="es">Español</option>
-                      <option value="fr">Français</option>
-                      <option value="de">Deutsch</option>
-                      <option value="zh">中文</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Timezone
-                    </label>
-                    <select
-                      value={settings.timezone}
-                      onChange={(e) => updateSetting('timezone', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
-                    >
-                      <option value="UTC">UTC</option>
-                      <option value="America/New_York">Eastern Time</option>
-                      <option value="America/Chicago">Central Time</option>
-                      <option value="America/Denver">Mountain Time</option>
-                      <option value="America/Los_Angeles">Pacific Time</option>
-                      <option value="Europe/London">London</option>
-                      <option value="Europe/Paris">Paris</option>
-                      <option value="Asia/Tokyo">Tokyo</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Date Format
-                    </label>
-                    <select
-                      value={settings.dateFormat}
-                      onChange={(e) => updateSetting('dateFormat', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
-                    >
-                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                      <option value="DD-MM-YYYY">DD-MM-YYYY</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Currency
-                    </label>
-                    <select
-                      value={settings.currency}
-                      onChange={(e) => {
-                        updateSetting('currency', e.target.value)
-                        setCurrency(e.target.value)
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
-                    >
-                      {supportedCurrencies.map((code) => (
-                        <option key={code} value={code}>
-                          {code}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Notifications Tab */}
-          {activeTab === 'notifications' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Notification Preferences</h3>
-                
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">Push Notifications</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Receive notifications in your browser</p>
-                    </div>
-                    <button
-                      onClick={() => updateSetting('notifications', !settings.notifications)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                        settings.notifications ? 'bg-primary dark:bg-primary-light' : 'bg-gray-200 dark:bg-slate-600'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                          settings.notifications ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">Email Alerts</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Receive email notifications</p>
-                    </div>
-                    <button
-                      onClick={() => updateSetting('emailAlerts', !settings.emailAlerts)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                        settings.emailAlerts ? 'bg-primary dark:bg-primary-light' : 'bg-gray-200 dark:bg-slate-600'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                          settings.emailAlerts ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Appearance Tab */}
-          {activeTab === 'appearance' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Appearance Settings</h3>
-                
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-900 dark:text-white">Dark Mode</h4>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Toggle dark/light theme</p>
-                    </div>
-                    <button
-                      onClick={toggleTheme}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                        isDark ? 'bg-primary dark:bg-primary-light' : 'bg-gray-200 dark:bg-slate-600'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                          isDark ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Color Theme</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {Object.entries(availableColors).map(([key, palette]) => (
-                        <button
-                          key={key}
-                          onClick={() => setColorPalette(key)}
-                          className={`p-3 rounded-lg border-2 transition-all ${
-                            colorPalette === key
-                              ? 'border-primary dark:border-primary-light'
-                              : 'border-gray-200 dark:border-slate-600 hover:border-gray-300 dark:hover:border-slate-500'
-                          }`}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <div
-                              className="w-6 h-6 rounded-full border-2 border-white dark:border-slate-800"
-                              style={{ backgroundColor: palette.primary }}
-                            />
-                            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                              {palette.name}
-                            </span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Data Management Tab */}
-          {activeTab === 'data' && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Data Management</h3>
-                
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Backup & Export</h4>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h5 className="text-sm font-medium text-gray-900 dark:text-white">Auto Backup</h5>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Automatically backup your data</p>
-                        </div>
-                        <button
-                          onClick={() => updateSetting('autoBackup', !settings.autoBackup)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full ${
-                            settings.autoBackup ? 'bg-primary dark:bg-primary-light' : 'bg-gray-200 dark:bg-slate-600'
-                          }`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
-                              settings.autoBackup ? 'translate-x-6' : 'translate-x-1'
-                            }`}
-                          />
-                        </button>
-                      </div>
-
-                      <div className="flex space-x-3">
-                        <button
-                          onClick={handleExportData}
-                          className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700"
-                        >
-                          <Download className="h-4 w-4 mr-2" />
-                          Export Data
-                        </button>
-                        
-                        <label className="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-slate-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-slate-800 hover:bg-gray-50 dark:hover:bg-slate-700 cursor-pointer">
-                          <Upload className="h-4 w-4 mr-2" />
-                          Import Data
-                          <input
-                            type="file"
-                            accept=".json"
-                            onChange={handleImportData}
-                            className="hidden"
-                          />
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Data Retention</h4>
-                    <div className="flex items-center space-x-4">
-                      <label className="text-sm text-gray-700 dark:text-gray-300">Keep data for</label>
-                      <select
-                        value={settings.dataRetention}
-                        onChange={(e) => updateSetting('dataRetention', parseInt(e.target.value))}
-                        className="px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-md bg-white dark:bg-slate-800 text-gray-900 dark:text-white"
-                      >
-                        <option value={30}>30 days</option>
-                        <option value={90}>90 days</option>
-                        <option value={180}>180 days</option>
-                        <option value={365}>1 year</option>
-                        <option value={730}>2 years</option>
-                        <option value={0}>Forever</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-900 dark:text-white mb-3">Danger Zone</h4>
-                    <button
-                      onClick={handleClearData}
-                      className="inline-flex items-center px-4 py-2 border border-red-300 dark:border-red-600 rounded-md shadow-sm text-sm font-medium text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30"
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Clear All Data
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <button
-          onClick={handleSave}
-          disabled={loading}
-          className="inline-flex items-center px-6 py-3 border border-transparent rounded-md shadow-sm text-base font-medium text-white bg-primary dark:bg-primary-light hover:bg-primary-dark dark:hover:bg-primary disabled:opacity-50"
-        >
-          {loading ? 'Saving...' : 'Save Settings'}
-        </button>
-      </div>
     </div>
   )
 }

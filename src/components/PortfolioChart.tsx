@@ -2,8 +2,8 @@ import React from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, BarChart, Bar } from 'recharts'
 
 interface ChartData {
-  name: string
-  value: number
+  name?: string
+  value?: number
   date?: string
   symbol?: string
   pnlPercentage?: number
@@ -61,7 +61,9 @@ const PortfolioChart: React.FC<PortfolioChartProps> = ({ data, type = 'line', ti
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percentage }: any) => `${name}: ${percentage ? percentage.toFixed(1) : 0}%`}
+                label={({ name, percentage }: { name?: string; percentage?: number }) =>
+                  `${name || ''}: ${percentage ? percentage.toFixed(1) : 0}%`
+                }
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
