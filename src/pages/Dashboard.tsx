@@ -793,7 +793,7 @@
 
 // export default Dashboard
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { TrendingUp, TrendingDown, IndianRupee, Receipt, BarChart3, Target } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { api, API } from '../api'
@@ -846,6 +846,16 @@ interface BudgetOverrunAlert {
   utilizationPct: number;
 }
 
+interface UnexpectedSpikeAlert {
+  id: string;
+  title: string;
+  detail: string;
+  severity: 'critical' | 'warning' | 'info';
+  kind?: string;
+  period?: string;
+  category?: string;
+}
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate()
   const { formatAmount, formatAmountWithSign } = useCurrency()
@@ -862,6 +872,7 @@ const Dashboard: React.FC = () => {
   })
   const [monthlyCategories, setMonthlyCategories] = useState<CategoryBreakdown[]>([])
   const [unusualSpikes, setUnusualSpikes] = useState<UnusualSpike[]>([])
+  const [unexpectedAlerts, setUnexpectedAlerts] = useState<UnexpectedSpikeAlert[]>([])
   const [budgetOverruns, setBudgetOverruns] = useState<BudgetOverrunAlert[]>([])
   const [spikeScope, setSpikeScope] = useState<'last-month' | 'all-time' | 'none'>('none')
   const [allTimeStats, setAllTimeStats] = useState({
@@ -873,8 +884,8 @@ const Dashboard: React.FC = () => {
 
   const buildLastMonthRange = () => {
     const now = new Date()
-    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const end = new Date(now.getFullYear(), now.getMonth(), 0)
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+    const end = now
     return {
       startDate: start.toISOString().split('T')[0],
       endDate: end.toISOString().split('T')[0]
@@ -887,107 +898,134 @@ const Dashboard: React.FC = () => {
     navigate(queryString ? `/transactions?${queryString}` : '/transactions')
   }
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
-        const summaryResponse = await api.get(API.TRANSACTIONS_SUMMARY)
-        setSummary(summaryResponse.data)
+  const fetchDashboardData = useCallback(async () => {
+    try {
+      const summaryResponse = await api.get(API.TRANSACTIONS_SUMMARY)
+      setSummary(summaryResponse.data)
 
-        const transactionsResponse = await api.get(`${API.TRANSACTIONS}?limit=5`)
-        setRecentTransactions(transactionsResponse.data.transactions)
+      const transactionsResponse = await api.get(`${API.TRANSACTIONS}?limit=5`)
+      setRecentTransactions(transactionsResponse.data.transactions)
 
-        const now = new Date()
-        const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-        const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59)
+      const now = new Date()
+      const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const endOfCurrentPeriod = now
 
-        const analyticsResponse = await api.get(API.ANALYTICS, {
-          params: {
-            startDate: startOfLastMonth.toISOString(),
-            endDate: endOfLastMonth.toISOString()
-          }
-        })
-
-        const analyticsData = analyticsResponse.data
-        const topExpenseCategories = analyticsData.expenseCategories.slice(0, 5)
-        const lastMonthSpikes = Array.isArray(analyticsData.unusualSpikes) ? analyticsData.unusualSpikes : []
-        const monthlyNetFlow = analyticsData.summary.totalIncome - analyticsData.summary.totalExpenses
-        const monthlySavingsRate = analyticsData.summary.totalIncome > 0 
-          ? ((monthlyNetFlow / analyticsData.summary.totalIncome) * 100).toFixed(1)
-          : 0
-        
-        setMonthlyStats({
-          income: analyticsData.summary.totalIncome,
-          expenses: analyticsData.summary.totalExpenses,
-          netFlow: monthlyNetFlow,
-          savingsRate: monthlySavingsRate,
-          topCategory: analyticsData.expenseCategories.length > 0 ? analyticsData.expenseCategories[0].category : 'None',
-          transactionCount: analyticsData.summary.incomeCount + analyticsData.summary.expenseCount
-        })
-        
-        setMonthlyCategories(topExpenseCategories.map((cat: any) => ({
-          name: cat.category.charAt(0).toUpperCase() + cat.category.slice(1),
-          amount: cat.amount,
-          percentage: cat.percentage
-        })))
-
-        const [allTimeResponse, budgetsResponse] = await Promise.all([
-          api.get(API.ANALYTICS),
-          api.get(API.BUDGETS)
-        ])
-        const allTimeData = allTimeResponse.data
-        const allTimeSpikes = Array.isArray(allTimeData.unusualSpikes) ? allTimeData.unusualSpikes : []
-        const budgetRows = Array.isArray(budgetsResponse.data) ? budgetsResponse.data : []
-        const overruns = budgetRows
-          .map((budget: any) => {
-            const amount = Number(budget.amount) || 0
-            const spent = Number(budget.spent) || 0
-            if (amount <= 0 || spent <= amount) return null
-            const overBy = spent - amount
-            const utilizationPct = Math.round((spent / amount) * 100)
-            return {
-              id: budget._id || `${budget.category}-${budget.name}`,
-              name: budget.name || budget.category || 'Budget',
-              category: budget.category || '',
-              amount,
-              spent,
-              overBy,
-              utilizationPct
-            } as BudgetOverrunAlert
-          })
-          .filter(Boolean)
-          .sort((a: any, b: any) => b.overBy - a.overBy)
-          .slice(0, 5) as BudgetOverrunAlert[]
-        setBudgetOverruns(overruns)
-        const avgMonthlyExpense = allTimeData.summary.totalExpenses > 0 
-          ? Math.round(allTimeData.summary.totalExpenses / 12)
-          : 0
-
-        setAllTimeStats({
-          totalTransactions: allTimeData.summary.incomeCount + allTimeData.summary.expenseCount,
-          avgMonthlyExpense,
-          highestExpenseCategory: allTimeData.expenseCategories.length > 0 ? allTimeData.expenseCategories[0].category : 'N/A'
-        })
-
-        if (lastMonthSpikes.length > 0) {
-          setUnusualSpikes(lastMonthSpikes)
-          setSpikeScope('last-month')
-        } else if (allTimeSpikes.length > 0) {
-          setUnusualSpikes(allTimeSpikes)
-          setSpikeScope('all-time')
-        } else {
-          setUnusualSpikes([])
-          setSpikeScope('none')
+      const analyticsResponse = await api.get(API.ANALYTICS, {
+        params: {
+          startDate: startOfCurrentMonth.toISOString(),
+          endDate: endOfCurrentPeriod.toISOString()
         }
+      })
 
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error)
-      } finally {
-        setLoading(false)
+      const analyticsData = analyticsResponse.data
+      const topExpenseCategories = analyticsData.expenseCategories.slice(0, 5)
+      const currentPeriodSpikes = Array.isArray(analyticsData.unusualSpikes) ? analyticsData.unusualSpikes : []
+      const currentPeriodUnexpectedAlerts = Array.isArray(analyticsData?.unexpectedSpikes?.alerts) ? analyticsData.unexpectedSpikes.alerts : []
+      const monthlyNetFlow = analyticsData.summary.totalIncome - analyticsData.summary.totalExpenses
+      const monthlySavingsRate = analyticsData.summary.totalIncome > 0
+        ? ((monthlyNetFlow / analyticsData.summary.totalIncome) * 100).toFixed(1)
+        : 0
+
+      setMonthlyStats({
+        income: analyticsData.summary.totalIncome,
+        expenses: analyticsData.summary.totalExpenses,
+        netFlow: monthlyNetFlow,
+        savingsRate: monthlySavingsRate,
+        topCategory: analyticsData.expenseCategories.length > 0 ? analyticsData.expenseCategories[0].category : 'None',
+        transactionCount: analyticsData.summary.incomeCount + analyticsData.summary.expenseCount
+      })
+
+      setMonthlyCategories(topExpenseCategories.map((cat: any) => ({
+        name: cat.category.charAt(0).toUpperCase() + cat.category.slice(1),
+        amount: cat.amount,
+        percentage: cat.percentage
+      })))
+
+      const [allTimeResponse, budgetsResponse] = await Promise.all([
+        api.get(API.ANALYTICS),
+        api.get(API.BUDGETS)
+      ])
+      const allTimeData = allTimeResponse.data
+      const allTimeSpikes = Array.isArray(allTimeData.unusualSpikes) ? allTimeData.unusualSpikes : []
+      const allTimeUnexpectedAlerts = Array.isArray(allTimeData?.unexpectedSpikes?.alerts) ? allTimeData.unexpectedSpikes.alerts : []
+      const budgetRows = Array.isArray(budgetsResponse.data) ? budgetsResponse.data : []
+      const overruns = budgetRows
+        .map((budget: any) => {
+          const amount = Number(budget.amount) || 0
+          const spent = Number(budget.spent) || 0
+          if (amount <= 0 || spent <= amount) return null
+          const overBy = spent - amount
+          const utilizationPct = Math.round((spent / amount) * 100)
+          return {
+            id: budget._id || `${budget.category}-${budget.name}`,
+            name: budget.name || budget.category || 'Budget',
+            category: budget.category || '',
+            amount,
+            spent,
+            overBy,
+            utilizationPct
+          } as BudgetOverrunAlert
+        })
+        .filter(Boolean)
+        .sort((a: any, b: any) => b.overBy - a.overBy)
+        .slice(0, 5) as BudgetOverrunAlert[]
+      setBudgetOverruns(overruns)
+      const avgMonthlyExpense = allTimeData.summary.totalExpenses > 0
+        ? Math.round(allTimeData.summary.totalExpenses / 12)
+        : 0
+
+      setAllTimeStats({
+        totalTransactions: allTimeData.summary.incomeCount + allTimeData.summary.expenseCount,
+        avgMonthlyExpense,
+        highestExpenseCategory: allTimeData.expenseCategories.length > 0 ? allTimeData.expenseCategories[0].category : 'N/A'
+      })
+
+      if (currentPeriodSpikes.length > 0) {
+        setUnusualSpikes(currentPeriodSpikes)
+        setSpikeScope('last-month')
+      } else if (allTimeSpikes.length > 0) {
+        setUnusualSpikes(allTimeSpikes)
+        setSpikeScope('all-time')
+      } else {
+        setUnusualSpikes([])
+        setSpikeScope('none')
+      }
+
+      if (currentPeriodUnexpectedAlerts.length > 0) {
+        setUnexpectedAlerts(currentPeriodUnexpectedAlerts)
+      } else {
+        setUnexpectedAlerts(allTimeUnexpectedAlerts)
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchDashboardData()
+
+    const handleDataChange = () => {
+      fetchDashboardData()
+    }
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        fetchDashboardData()
       }
     }
 
-    fetchDashboardData()
-  }, [])
+    window.addEventListener('transaction-updated', handleDataChange)
+    window.addEventListener('budget-updated', handleDataChange)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      window.removeEventListener('transaction-updated', handleDataChange)
+      window.removeEventListener('budget-updated', handleDataChange)
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
+  }, [fetchDashboardData])
 
   if (loading) {
     return (
@@ -1037,8 +1075,8 @@ const Dashboard: React.FC = () => {
           onClick={() => navigateToTransactions({})}
         >
           <div className="flex items-center">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600 dark:text-blue-400" />
+            <div className="p-2 bg-slate-100 dark:bg-slate-700 rounded-lg">
+              <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-slate-800 dark:text-slate-100" />
             </div>
             <div className="ml-3 sm:ml-4">
               <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">Net Flow</p>
@@ -1093,7 +1131,7 @@ const Dashboard: React.FC = () => {
               }}
             >
               <div className="flex flex-col">
-                <span className="text-xs sm:text-sm text-green-800 dark:text-green-200 font-semibold">Last Month Income</span>
+                <span className="text-xs sm:text-sm text-green-800 dark:text-green-200 font-semibold">This Month Income</span>
                 <span className="text-xs text-green-600 dark:text-green-400">Transactions: {monthlyStats.transactionCount}</span>
               </div>
               <span className="text-sm sm:text-lg font-bold text-green-700 dark:text-green-300">
@@ -1109,7 +1147,7 @@ const Dashboard: React.FC = () => {
               }}
             >
               <div className="flex flex-col">
-                <span className="text-xs sm:text-sm text-red-800 dark:text-red-200 font-semibold">Last Month Expenses</span>
+                <span className="text-xs sm:text-sm text-red-800 dark:text-red-200 font-semibold">This Month Expenses</span>
                 <span className="text-xs text-red-600 dark:text-red-400">Total spent</span>
               </div>
               <span className="text-sm sm:text-lg font-bold text-red-700 dark:text-red-300">
@@ -1117,12 +1155,12 @@ const Dashboard: React.FC = () => {
               </span>
             </div>
 
-            <div className="flex justify-between items-center p-3 rounded-lg border bg-[#eff6ff] border-[#bfdbfe] dark:bg-blue-900/30 dark:border-blue-700">
+            <div className="flex justify-between items-center p-3 rounded-lg border bg-white border-gray-300 dark:bg-slate-800 dark:border-slate-600">
               <div className="flex flex-col">
-                <span className="text-xs sm:text-sm font-semibold text-[#1e3a8a] dark:text-blue-200">Last Month Net Flow</span>
-                <span className="text-xs text-[#2563eb] dark:text-blue-300">Income - Expenses</span>
+                <span className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-100">This Month Net Flow</span>
+                <span className="text-xs text-gray-600 dark:text-gray-300">Income - Expenses</span>
               </div>
-              <span className={`text-sm sm:text-lg font-bold ${monthlyStats.netFlow >= 0 ? 'text-[#1d4ed8] dark:text-blue-200' : 'text-red-700 dark:text-red-400'}`}>
+              <span className={`text-sm sm:text-lg font-bold ${monthlyStats.netFlow >= 0 ? 'text-emerald-700 dark:text-emerald-300' : 'text-red-700 dark:text-red-400'}`}>
                 {formatAmount(monthlyStats.netFlow)}
               </span>
             </div>
@@ -1156,7 +1194,7 @@ const Dashboard: React.FC = () => {
         <div className="mb-3">
           <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Expense Spikes & Budget Overruns</h2>
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            {spikeScope === 'last-month' ? 'Scope: Last month' : spikeScope === 'all-time' ? 'Scope: All time (fallback)' : 'Scope: No spikes detected yet'}
+            {spikeScope === 'last-month' ? 'Scope: This month' : spikeScope === 'all-time' ? 'Scope: All time (fallback)' : 'Scope: No spikes detected yet'}
           </p>
         </div>
         <div className="mb-3">
@@ -1184,6 +1222,29 @@ const Dashboard: React.FC = () => {
           </div>
         ) : (
           <p className="text-sm text-gray-600 dark:text-gray-300">No unusual spikes found in your current data yet.</p>
+        )}
+
+        <div className="mt-5 mb-3">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Other Unexpected Signals</h3>
+        </div>
+        {unexpectedAlerts.length > 0 ? (
+          <div className="space-y-2">
+            {unexpectedAlerts.map((alert) => {
+              const levelClass = alert.severity === 'critical'
+                ? 'border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-200'
+                : alert.severity === 'warning'
+                  ? 'border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200'
+                  : 'border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200'
+              return (
+                <div key={alert.id} className={`p-3 rounded-lg border ${levelClass}`}>
+                  <p className="text-sm font-semibold">{alert.title}</p>
+                  <p className="text-xs opacity-90">{alert.detail}</p>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-600 dark:text-gray-300">No additional unexpected signals detected.</p>
         )}
 
         <div className="mt-5 mb-3">
@@ -1245,7 +1306,7 @@ const Dashboard: React.FC = () => {
 
       <div className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-lg shadow">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">Last Month - Expenses by Category</h2>
+          <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">This Month - Expenses by Category</h2>
           <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
         </div>
         

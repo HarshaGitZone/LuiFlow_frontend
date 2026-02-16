@@ -166,6 +166,17 @@ const Transactions: React.FC = () => {
     }
   }, [dateFilterMode])
 
+  useEffect(() => {
+    const handleTransactionUpdated = () => {
+      fetchTransactions()
+    }
+
+    window.addEventListener('transaction-updated', handleTransactionUpdated)
+    return () => {
+      window.removeEventListener('transaction-updated', handleTransactionUpdated)
+    }
+  }, [currentPage, typeFilter, categoryFilter, searchTerm, dateFilterMode, singleDate, startDate, endDate])
+
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
       try {
