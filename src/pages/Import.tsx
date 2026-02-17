@@ -772,6 +772,10 @@ const Import: React.FC = () => {
 
     const latestRetryRows = createRetryRows(validationResponse.data)
     setRetryRows(latestRetryRows)
+    return {
+      dryRunResult: validationResponse.data,
+      retryRows: latestRetryRows
+    }
   }
 
   const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -969,6 +973,7 @@ const Import: React.FC = () => {
       setRetryFeedback(null)
       setRetryError(null)
 
+      const attemptedRows = retryRows.length
       const retryCsv = buildRetryCsv(retryHeaders, retryRows)
       const originalBaseName = file?.name ? file.name.replace(/\.csv$/i, '') : 'transactions'
       const retryFile = new File([retryCsv], `${originalBaseName}-failed-rows-retry.csv`, { type: 'text/csv' })
@@ -984,15 +989,36 @@ const Import: React.FC = () => {
       })
 
       const insertedRows = importResponse.data?.summary?.insertedRows || 0
-      const remainingErrorRows = importResponse.data?.summary?.errors || 0
+      const duplicateRows = importResponse.data?.summary?.duplicateRows || 0
 
-      await refreshRetryRowsFromDryRun(retryFile)
+      const refreshed = await refreshRetryRowsFromDryRun(retryFile)
+      const remainingErrorRows = refreshed.retryRows.length
+
+      setDryRunResult((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          summary: {
+            ...prev.summary,
+            errorRows: remainingErrorRows
+          }
+        }
+      })
 
       if (insertedRows > 0) {
         window.dispatchEvent(new CustomEvent('transaction-updated'))
       }
 
-      setRetryFeedback(`Retry processed ${retryRows.length} row(s): ${insertedRows} imported, ${remainingErrorRows} still failing.`)
+      if (remainingErrorRows === 0) {
+        setRetryFeedback(`Retry processed ${attemptedRows} row(s): ${insertedRows} imported, ${duplicateRows} duplicates skipped, 0 still failing.`)
+      } else {
+        setRetryFeedback(`Retry processed ${attemptedRows} row(s): ${insertedRows} imported, ${duplicateRows} duplicates skipped, ${remainingErrorRows} still failing.`)
+      }
+
+      if (remainingErrorRows === 0 && (dryRunResult?.summary.validRows || 0) === 0 && insertedRows > 0) {
+        setImportResult(importResponse.data)
+        setImportStep(4)
+      }
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || 'Failed to retry failed rows'
       setRetryError(message)
@@ -1046,17 +1072,17 @@ const Import: React.FC = () => {
           </div>
 
           {hasSavedState && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="mt-4 p-4 bg-sky-100 border border-sky-300 rounded-lg">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-start sm:items-center">
-                  <AlertCircle className="h-5 w-5 text-blue-600 mr-2" />
-                  <p className="text-sm text-blue-800">
+                  <AlertCircle className="h-5 w-5 text-sky-700 mr-2" />
+                  <p className="text-sm text-sky-950">
                     You have a previous import session saved. Upload the same CSV file to continue where you left off.
                   </p>
                 </div>
                 <button
                   onClick={clearSavedState}
-                  className="p-1 text-blue-600 hover:bg-blue-100 rounded"
+                  className="p-1 text-sky-700 hover:bg-sky-200 rounded"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1158,18 +1184,18 @@ const Import: React.FC = () => {
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'}`}>1</div>
                 <span className="ml-2 font-medium whitespace-nowrap">Upload</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-gray-400" />
-              <div className={`flex items-center ${importStep >= 2 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+              <ArrowRight className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <div className={`flex items-center ${importStep >= 2 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'}`}>2</div>
                 <span className="ml-2 font-medium whitespace-nowrap">Map Columns</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-gray-400" />
-              <div className={`flex items-center ${importStep >= 3 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+              <ArrowRight className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <div className={`flex items-center ${importStep >= 3 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'}`}>3</div>
                 <span className="ml-2 font-medium whitespace-nowrap">Validate</span>
               </div>
-              <ArrowRight className="w-4 h-4 text-gray-400" />
-              <div className={`flex items-center ${importStep >= 4 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400 dark:text-gray-500'}`}>
+              <ArrowRight className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+              <div className={`flex items-center ${importStep >= 4 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-600 dark:text-gray-400'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${importStep >= 4 ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300'}`}>4</div>
                 <span className="ml-2 font-medium whitespace-nowrap">Import</span>
               </div>

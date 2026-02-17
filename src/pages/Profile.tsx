@@ -468,9 +468,6 @@ import {
   TrendingDown,
   Edit,
   Camera,
-  Download,
-  PieChart,
-  BarChart3,
   Target,
   Wallet
 } from 'lucide-react'
@@ -730,17 +727,12 @@ const Profile: React.FC = () => {
           )}
         </div>
         <div className={`p-3 rounded-full ${
-          color === 'green' ? 'bg-green-100 dark:bg-green-900/30' :
-          color === 'red' ? 'bg-red-100 dark:bg-red-900/30' :
-          color === 'purple' ? 'bg-purple-100 dark:bg-purple-900/30' :
-          'bg-blue-100 dark:bg-blue-900/30'
+          color === 'green' ? 'bg-green-600 dark:bg-green-500' :
+          color === 'red' ? 'bg-red-600 dark:bg-red-500' :
+          color === 'purple' ? 'bg-purple-600 dark:bg-purple-500' :
+          'bg-blue-600 dark:bg-blue-500'
         }`}>
-          <Icon className={`h-6 w-6 ${
-            color === 'green' ? 'text-green-600 dark:text-green-400' :
-            color === 'red' ? 'text-red-600 dark:text-red-400' :
-            color === 'purple' ? 'text-purple-600 dark:text-purple-400' :
-            'text-blue-600 dark:text-blue-400'
-          }`} />
+          <Icon className="h-6 w-6 text-white" strokeWidth={2.5} />
         </div>
       </div>
     </div>
@@ -1012,21 +1004,6 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        <button className="flex items-center justify-center space-x-2 p-4 bg-white dark:bg-slate-900 rounded-lg shadow hover:shadow-md transition-shadow border border-gray-100 dark:border-slate-700">
-          <Download className="h-5 w-5 text-blue-600" />
-          <span className="font-medium text-gray-900 dark:text-gray-100">Export Data</span>
-        </button>
-        <button className="flex items-center justify-center space-x-2 p-4 bg-white dark:bg-slate-900 rounded-lg shadow hover:shadow-md transition-shadow border border-gray-100 dark:border-slate-700">
-          <PieChart className="h-5 w-5 text-green-600" />
-          <span className="font-medium text-gray-900 dark:text-gray-100">View Reports</span>
-        </button>
-        <button className="flex items-center justify-center space-x-2 p-4 bg-white dark:bg-slate-900 rounded-lg shadow hover:shadow-md transition-shadow border border-gray-100 dark:border-slate-700">
-          <BarChart3 className="h-5 w-5 text-purple-600" />
-          <span className="font-medium text-gray-900 dark:text-gray-100">Analytics</span>
-        </button>
-      </div>
     </div>
   )
 }

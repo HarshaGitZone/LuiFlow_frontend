@@ -22,7 +22,7 @@ const ColorPalette: React.FC = () => {
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-[22rem] max-w-[calc(100vw-1rem)] bg-white dark:bg-slate-900 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-50">
+        <div className="fixed sm:absolute top-16 sm:top-auto right-2 sm:right-0 left-2 sm:left-auto mt-0 sm:mt-2 w-auto sm:w-[22rem] max-w-none sm:max-w-[calc(100vw-1rem)] max-h-[calc(100vh-5rem)] overflow-y-auto bg-white dark:bg-slate-900 rounded-lg shadow-lg ring-1 ring-black ring-opacity-5 z-[70]">
           <div className="p-4 border-b border-gray-200 dark:border-slate-700">
             <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 flex items-center">
               <Palette className="h-4 w-4 mr-2" />
