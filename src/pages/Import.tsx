@@ -516,7 +516,7 @@
 
 // export default Import
 
-import React, { useState, useEffect, ChangeEvent } from 'react'
+import React, { useState, useEffect, ChangeEvent, useMemo } from 'react'
 import { Upload, FileText, CheckCircle, AlertCircle, ArrowRight, ArrowLeft, Eye, Database, Play, RotateCcw, X, History, Clock } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
@@ -602,6 +602,28 @@ interface HistoryItem {
   };
 }
 
+interface ReadableError {
+  row: number;
+  reason: string;
+  raw: string;
+}
+
+const CSV_SAMPLE = `date,amount,type,category,description
+2026-02-01,1250,expense,Rent,February rent
+2026-02-03,320,expense,Groceries,Weekly grocery run
+2026-02-05,4500,income,Salary,Monthly salary credit
+2026-02-07,120,expense,Transport,Metro recharge`
+
+const CSV_REQUIRED_COLUMNS = ['date', 'amount']
+const CSV_OPTIONAL_COLUMNS = ['type', 'category', 'description']
+const CSV_FORMAT_HINTS = [
+  'Use one header row at the top (for example: date, amount, type).',
+  'Date format works best as YYYY-MM-DD (example: 2026-02-07).',
+  'Amount should be numeric only (no currency symbol or commas).',
+  'Use type values like expense or income for better classification.',
+  'Save file as UTF-8 CSV and keep each transaction on a separate line.'
+]
+
 const Import: React.FC = () => {
   const { formatAmount } = useCurrency()
   const { formatDate } = useDateFormatter()
@@ -636,6 +658,57 @@ const Import: React.FC = () => {
       minute: '2-digit'
     }).format(date)
   }
+
+  const humanizeFieldName = (field: string) =>
+    field
+      .replace(/[_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, (char) => char.toUpperCase())
+
+  const toReadableError = (item: ValidationError): ReadableError => {
+    const raw = String(item.error || '').trim()
+    const normalized = raw.toLowerCase()
+
+    const requiredMatch = raw.match(/(?:missing|required)\s+(?:field|column)?\s*[:\-]?\s*["'`]?([a-zA-Z0-9_-]+)["'`]?/i)
+    const invalidMatch = raw.match(/invalid\s+([a-zA-Z0-9_-]+)/i)
+
+    let reason = raw || 'Unknown validation error'
+
+    if (requiredMatch?.[1]) {
+      reason = `${humanizeFieldName(requiredMatch[1])} is required.`
+    } else if (normalized.includes('invalid date') || (invalidMatch?.[1] || '').toLowerCase() === 'date') {
+      reason = 'Date format is invalid. Use YYYY-MM-DD.'
+    } else if (normalized.includes('invalid amount') || normalized.includes('amount must be a number') || normalized.includes('amount is not a number')) {
+      reason = 'Amount must be a valid number (for example: 1250.50).'
+    } else if (normalized.includes('duplicate')) {
+      reason = 'Duplicate transaction detected.'
+    } else if (normalized.includes('type') && normalized.includes('income') && normalized.includes('expense')) {
+      reason = 'Type must be either "income" or "expense".'
+    } else if (invalidMatch?.[1]) {
+      reason = `${humanizeFieldName(invalidMatch[1])} is invalid.`
+    } else if (normalized.includes('parse') && normalized.includes('date')) {
+      reason = 'Could not parse the date value.'
+    }
+
+    return {
+      row: Number(item.row) || 0,
+      reason,
+      raw
+    }
+  }
+
+  const validationErrorRows = useMemo(() => {
+    if (!dryRunResult?.validation?.errors) return []
+    return dryRunResult.validation.errors
+      .filter((errorItem) => !errorItem.isDuplicate)
+      .map(toReadableError)
+  }, [dryRunResult])
+
+  const finalImportErrorRows = useMemo(() => {
+    if (!importResult?.errors) return []
+    return importResult.errors.map(toReadableError)
+  }, [importResult])
 
   useEffect(() => {
     const loadSavedState = () => {
@@ -1284,6 +1357,42 @@ const Import: React.FC = () => {
               </div>
             )}
           </div>
+
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-lg shadow space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">CSV Format Guide</h2>
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Use this format to avoid mapping and validation errors during import.
+            </p>
+
+            <div className="grid grid-cols-1 gap-3">
+              <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-green-800 dark:text-green-300 mb-1">Required Columns</p>
+                <p className="text-sm text-green-900 dark:text-green-200">{CSV_REQUIRED_COLUMNS.join(', ')}</p>
+              </div>
+              <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-300 mb-1">Optional Columns</p>
+                <p className="text-sm text-blue-900 dark:text-blue-200">{CSV_OPTIONAL_COLUMNS.join(', ')}</p>
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 dark:border-slate-700 bg-gray-50 dark:bg-slate-800 p-4">
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">Sample CSV</p>
+              <pre className="text-xs sm:text-sm text-gray-700 dark:text-gray-200 overflow-x-auto whitespace-pre">
+                {CSV_SAMPLE}
+              </pre>
+            </div>
+
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 p-4">
+              <p className="text-sm font-medium text-amber-900 dark:text-amber-200 mb-2">Formatting Hints</p>
+              <ul className="space-y-1.5">
+                {CSV_FORMAT_HINTS.map((hint) => (
+                  <li key={hint} className="text-xs sm:text-sm text-amber-800 dark:text-amber-200">
+                    {hint}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1454,7 +1563,14 @@ const Import: React.FC = () => {
                       {retryRows.map((retryRow, rowIndex) => (
                         <tr key={`${retryRow.sourceRow}-${rowIndex}`} className="align-top">
                           <td className="px-3 py-3 text-xs font-medium text-gray-900 dark:text-gray-100">{retryRow.sourceRow}</td>
-                          <td className="px-3 py-3 text-xs text-red-700 dark:text-red-300 whitespace-normal min-w-[180px]">{retryRow.originalError}</td>
+                          <td className="px-3 py-3 text-xs whitespace-normal min-w-[220px]">
+                            <p className="font-medium text-red-800 dark:text-red-300">
+                              {toReadableError({ row: retryRow.sourceRow, error: retryRow.originalError }).reason}
+                            </p>
+                            <p className="mt-1 text-red-700 dark:text-red-300/90 break-words">
+                              Raw: {retryRow.originalError}
+                            </p>
+                          </td>
                           {getRetryHeaders().map((header) => (
                             <td key={header} className="px-3 py-3">
                               <input
@@ -1468,6 +1584,37 @@ const Import: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              </div>
+            )}
+
+            {validationErrorRows.length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">Row-level Error Reasons</h3>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    Showing {Math.min(validationErrorRows.length, 20)} of {validationErrorRows.length}
+                  </span>
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {validationErrorRows.slice(0, 20).map((errorItem, index) => (
+                    <div
+                      key={`${errorItem.row}-${index}`}
+                      className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 p-3"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-medium text-red-900 dark:text-red-200">{errorItem.reason}</p>
+                        <span className="text-xs font-semibold px-2 py-1 rounded-md bg-white/70 dark:bg-slate-800 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700">
+                          Row {errorItem.row || '-'}
+                        </span>
+                      </div>
+                      {errorItem.raw && errorItem.raw !== errorItem.reason && (
+                        <p className="mt-1 text-xs text-red-700 dark:text-red-300/90 break-words">
+                          Raw: {errorItem.raw}
+                        </p>
+                      )}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -1512,6 +1659,37 @@ const Import: React.FC = () => {
             <button onClick={() => navigate('/transactions')} className="w-full sm:flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg"><ArrowRight className="h-4 w-4 mr-2 inline" /> View Transactions</button>
             <button onClick={resetImport} className="w-full sm:flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg">Import Another File</button>
           </div>
+
+          {finalImportErrorRows.length > 0 && (
+            <div className="mt-6 border border-red-200 dark:border-red-800 rounded-lg bg-red-50 dark:bg-red-900/20 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-red-900 dark:text-red-200">Rows skipped with errors</h3>
+                <span className="text-xs text-red-700 dark:text-red-300">
+                  Showing {Math.min(finalImportErrorRows.length, 20)} of {finalImportErrorRows.length}
+                </span>
+              </div>
+              <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                {finalImportErrorRows.slice(0, 20).map((errorItem, index) => (
+                  <div
+                    key={`${errorItem.row}-${index}`}
+                    className="rounded-md border border-red-200 dark:border-red-800 bg-white/80 dark:bg-slate-900/60 px-3 py-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm text-red-900 dark:text-red-200">{errorItem.reason}</p>
+                      <span className="text-xs font-semibold px-2 py-1 rounded-md bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300">
+                        Row {errorItem.row || '-'}
+                      </span>
+                    </div>
+                    {errorItem.raw && errorItem.raw !== errorItem.reason && (
+                      <p className="mt-1 text-xs text-red-700 dark:text-red-300/90 break-words">
+                        Raw: {errorItem.raw}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
