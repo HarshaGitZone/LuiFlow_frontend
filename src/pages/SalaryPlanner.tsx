@@ -1,4 +1,4 @@
-// // import React, { useState, useEffect } from 'react'
+﻿// // import React, { useState, useEffect } from 'react'
 // // import { DollarSign, TrendingUp, Target, Plus, Edit2, Trash2 } from 'lucide-react'
 // // import { api } from '../api'
 // // import { useCurrency } from '../contexts/CurrencyContext'
@@ -1131,7 +1131,7 @@
 //             <div>
 //               <label className="block text-sm font-medium text-gray-700 mb-2">Salary Amount</label>
 //               <div className="relative">
-//                 <span className="absolute left-3 top-3 text-gray-500">₹</span>
+//                 <span className="absolute left-3 top-3 text-gray-500">â‚¹</span>
 //                 <input
 //                   type="number"
 //                   value={salary.amount}
@@ -1927,7 +1927,7 @@
 //                 Across {cumulativeSavings.totalMonths} months
 //                 {cumulativeSavings.totalSaved + manualSavings < 0 && (
 //                   <span className="block text-red-200 text-xs mt-1">
-//                     ⚠️ Negative balance - withdrawals exceeded savings
+//                     âš ï¸ Negative balance - withdrawals exceeded savings
 //                   </span>
 //                 )}
 //               </p>
@@ -1972,7 +1972,7 @@
 //                         <span className="font-medium">
 //                           {formatCurrency(month.saved)}
 //                           {month.goalsCompleted > 0 && (
-//                             <span className="ml-1 text-xs bg-white/20 px-1 rounded">{month.goalsCompleted} ✓</span>
+//                             <span className="ml-1 text-xs bg-white/20 px-1 rounded">{month.goalsCompleted} âœ“</span>
 //                           )}
 //                         </span>
 //                       </div>
@@ -1983,7 +1983,7 @@
 
 //             {cumulativeSavings.totalSaved > 0 && (
 //               <div className="mt-4 text-center">
-//                 <p className="text-emerald-100 text-sm">🎉 Great job! You're building wealth consistently!</p>
+//                 <p className="text-emerald-100 text-sm">ðŸŽ‰ Great job! You're building wealth consistently!</p>
 //               </div>
 //             )}
 //           </div>
@@ -2045,6 +2045,20 @@ interface Subscription {
   status: 'active' | 'paused' | 'cancelled';
 }
 
+interface BillFormState {
+  name: string;
+  amount: string;
+  dueDate: string;
+}
+
+interface SubscriptionFormState {
+  name: string;
+  provider: string;
+  monthlyCost: string;
+  renewalDate: string;
+  category: string;
+}
+
 interface SavingsGoal {
   _id: string;
   title: string;
@@ -2091,6 +2105,14 @@ const SalaryPlanner: React.FC = () => {
   const [editingBill, setEditingBill] = useState<Partial<FixedBill> | null>(null)
   const [editingGoal, setEditingGoal] = useState<Partial<SavingsGoal> | null>(null)
   const [editingSubscription, setEditingSubscription] = useState<Partial<Subscription> | null>(null)
+  const [billForm, setBillForm] = useState<BillFormState>({ name: '', amount: '', dueDate: '01' })
+  const [subscriptionForm, setSubscriptionForm] = useState<SubscriptionFormState>({
+    name: '',
+    provider: '',
+    monthlyCost: '',
+    renewalDate: '01',
+    category: 'Entertainment'
+  })
   const [loading, setLoading] = useState<boolean>(true)
   const [saving, setSaving] = useState<boolean>(false)
   const [currentMonth] = useState<string>(new Date().toISOString().slice(0, 7))
@@ -2113,6 +2135,12 @@ const SalaryPlanner: React.FC = () => {
         setVariableExpenses(data.variableExpenses || { totalSpent: 0, categories: [] })
         setSavingsGoals(data.savingsGoals || [])
         setSubscriptions(data.subscriptions || [])
+        
+        // Initialize default bills and subscriptions if empty
+        if ((!data.fixedBills || data.fixedBills.length === 0) && 
+            (!data.subscriptions || data.subscriptions.length === 0)) {
+          await initializeDefaults(month)
+        }
       }
       
       await loadSubscriptionSummary(month)
@@ -2122,6 +2150,98 @@ const SalaryPlanner: React.FC = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const initializeDefaults = async (month: string) => {
+    try {
+      // Check if defaults already exist
+      const existingBillNames = fixedBills.map(bill => bill.name.toLowerCase())
+      const existingSubscriptionNames = subscriptions.map(sub => sub.name.toLowerCase())
+      
+      // Default bills
+      const defaultBills = [
+        { name: 'Rent', amount: 15000, dueDate: '01', status: 'unpaid' },
+        { name: 'Electricity', amount: 2000, dueDate: '05', status: 'unpaid' },
+        { name: 'Water', amount: 800, dueDate: '10', status: 'unpaid' }
+      ]
+      
+      // Default subscriptions
+      const defaultSubscriptions = [
+        { name: 'Netflix', provider: 'Netflix', monthlyCost: 649, renewalDate: '15', category: 'Entertainment', status: 'active' },
+        { name: 'Amazon Prime', provider: 'Amazon', monthlyCost: 299, renewalDate: '20', category: 'Shopping', status: 'active' },
+        { name: 'Hotstar', provider: 'Disney+ Hotstar', monthlyCost: 399, renewalDate: '25', category: 'Entertainment', status: 'active' }
+      ]
+      
+      // Add only bills that don't exist
+      const billsToAdd = defaultBills.filter(bill => !existingBillNames.includes(bill.name.toLowerCase()))
+      for (const bill of billsToAdd) {
+        await api.post('/api/salary-planner/fixed-bill', {
+          month,
+          bill: { ...bill, status: 'unpaid' }
+        })
+      }
+      
+      // Add only subscriptions that don't exist
+      const subscriptionsToAdd = defaultSubscriptions.filter(sub => !existingSubscriptionNames.includes(sub.name.toLowerCase()))
+      for (const subscription of subscriptionsToAdd) {
+        await api.post('/api/salary-planner/subscription', {
+          month,
+          subscription: { ...subscription, status: 'active' }
+        })
+      }
+      
+      // Reload data after adding defaults
+      await loadSalaryPlanner(month)
+      
+      if (billsToAdd.length > 0 || subscriptionsToAdd.length > 0) {
+        showActionMessage('success', `${billsToAdd.length} bills and ${subscriptionsToAdd.length} subscriptions added. You can edit them as needed.`)
+      } else {
+        showActionMessage('info', 'All default bills and subscriptions already exist.')
+      }
+    } catch (error) {
+      console.error('Error initializing defaults:', error)
+      showActionMessage('error', 'Failed to add defaults.')
+    }
+  }
+
+  const removeDefaults = async (month: string) => {
+    try {
+      const defaultBillNames = ['rent', 'electricity', 'water']
+      const defaultSubscriptionNames = ['netflix', 'amazon prime', 'hotstar']
+      
+      // Remove default bills
+      const billsToRemove = fixedBills.filter(bill => defaultBillNames.includes(bill.name.toLowerCase()))
+      for (const bill of billsToRemove) {
+        await api.delete('/api/salary-planner/fixed-bill', {
+          data: { month, billId: bill._id }
+        })
+      }
+      
+      // Remove default subscriptions
+      const subscriptionsToRemove = subscriptions.filter(sub => defaultSubscriptionNames.includes(sub.name.toLowerCase()))
+      for (const subscription of subscriptionsToRemove) {
+        await api.delete('/api/salary-planner/subscription', {
+          data: { month, subscriptionId: subscription._id }
+        })
+      }
+      
+      // Reload data after removing defaults
+      await loadSalaryPlanner(month)
+      showActionMessage('success', `${billsToRemove.length} bills and ${subscriptionsToRemove.length} subscriptions removed.`)
+    } catch (error) {
+      console.error('Error removing defaults:', error)
+      showActionMessage('error', 'Failed to remove defaults.')
+    }
+  }
+
+  const hasDefaults = () => {
+    const defaultBillNames = ['rent', 'electricity', 'water']
+    const defaultSubscriptionNames = ['netflix', 'amazon prime', 'hotstar']
+    
+    const hasDefaultBills = fixedBills.some(bill => defaultBillNames.includes(bill.name.toLowerCase()))
+    const hasDefaultSubscriptions = subscriptions.some(sub => defaultSubscriptionNames.includes(sub.name.toLowerCase()))
+    
+    return hasDefaultBills || hasDefaultSubscriptions
   }
 
   const loadCumulativeSavings = async () => {
@@ -2175,6 +2295,26 @@ const SalaryPlanner: React.FC = () => {
     }
   }, [user, currentMonth])
 
+  useEffect(() => {
+    if (!showBillForm) return
+    setBillForm({
+      name: editingBill?.name || '',
+      amount: editingBill?.amount !== undefined ? String(editingBill.amount) : '',
+      dueDate: editingBill?.dueDate || '01'
+    })
+  }, [showBillForm, editingBill])
+
+  useEffect(() => {
+    if (!showSubscriptionForm) return
+    setSubscriptionForm({
+      name: editingSubscription?.name || '',
+      provider: editingSubscription?.provider || '',
+      monthlyCost: editingSubscription?.monthlyCost !== undefined ? String(editingSubscription.monthlyCost) : '',
+      renewalDate: editingSubscription?.renewalDate || '01',
+      category: editingSubscription?.category || 'Entertainment'
+    })
+  }, [showSubscriptionForm, editingSubscription])
+
   const getDaysLeftInMonth = () => {
     const now = new Date()
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
@@ -2199,6 +2339,7 @@ const SalaryPlanner: React.FC = () => {
     try {
       setSaving(true)
       if (editingBill?._id) {
+        // For editing, send billId in the request body as expected by backend
         await api.put('/api/salary-planner/fixed-bill', {
           month: currentMonth,
           billId: editingBill._id,
@@ -2489,7 +2630,7 @@ const SalaryPlanner: React.FC = () => {
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Salary Amount</label>
               <div className="relative">
-                <span className="absolute left-3 top-3 text-gray-500">₹</span>
+                <span className="absolute left-3 top-3 text-gray-500">â‚¹</span>
                 <input
                   type="number"
                   value={salary.amount}
@@ -2526,9 +2667,20 @@ const SalaryPlanner: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col md:min-h-[400px]">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Fixed Bills</h3>
-              <button onClick={() => setShowBillForm(true)} className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center whitespace-nowrap text-sm">
-                <Plus className="h-4 w-4 mr-2" /> Add Bill
-              </button>
+              <div className="flex items-center space-x-2">
+                {hasDefaults() ? (
+                  <button onClick={() => removeDefaults(currentMonth)} className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center whitespace-nowrap text-sm">
+                    <Trash2 className="h-4 w-4 mr-2" /> Remove Defaults
+                  </button>
+                ) : (
+                  <button onClick={() => initializeDefaults(currentMonth)} className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center whitespace-nowrap text-sm">
+                    <Plus className="h-4 w-4 mr-2" /> Add Defaults
+                  </button>
+                )}
+                <button onClick={() => { setEditingBill(null); setBillForm({ name: '', amount: '', dueDate: '01' }); setShowBillForm(true) }} className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center whitespace-nowrap text-sm">
+                  <Plus className="h-4 w-4 mr-2" /> Add Bill
+                </button>
+              </div>
             </div>
 
             {showBillForm && (
@@ -2536,20 +2688,20 @@ const SalaryPlanner: React.FC = () => {
                 <div className="bg-white dark:bg-slate-900 rounded-xl p-4 sm:p-6 w-full max-w-md">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{editingBill ? 'Edit Bill' : 'Add Bill'}</h3>
-                    <button onClick={() => {setShowBillForm(false); setEditingBill(null)}}><X className="h-5 w-5 text-gray-500" /></button>
+                    <button onClick={() => { setShowBillForm(false); setEditingBill(null); setBillForm({ name: '', amount: '', dueDate: '01' }) }}><X className="h-5 w-5 text-gray-500" /></button>
                   </div>
                   <div className="space-y-4">
-                    <input type="text" placeholder="Bill name" defaultValue={editingBill?.name || ''} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" id="billName" />
-                    <input type="number" placeholder="Amount" defaultValue={editingBill?.amount || ''} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" id="billAmount" />
-                    <select defaultValue={editingBill?.dueDate || '01'} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100" id="billDueDate">
+                    <input type="text" placeholder="Bill name" value={billForm.name} onChange={(e: ChangeEvent<HTMLInputElement>) => setBillForm((prev) => ({ ...prev, name: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" />
+                    <input type="number" placeholder="Amount" value={billForm.amount} onChange={(e: ChangeEvent<HTMLInputElement>) => setBillForm((prev) => ({ ...prev, amount: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400" />
+                    <select value={billForm.dueDate} onChange={(e: ChangeEvent<HTMLSelectElement>) => setBillForm((prev) => ({ ...prev, dueDate: e.target.value }))} className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100">
                       {Array.from({length: 31}, (_, i) => i + 1).map(day => (
                         <option key={day} value={day.toString().padStart(2, '0')}>{day}{day === 1 ? 'st' : 'th'}</option>
                       ))}
                     </select>
                     <button onClick={() => {
-                        const name = (document.getElementById('billName') as HTMLInputElement).value
-                        const amount = parseFloat((document.getElementById('billAmount') as HTMLInputElement).value) || 0
-                        const dueDate = (document.getElementById('billDueDate') as HTMLSelectElement).value
+                        const name = billForm.name.trim()
+                        const amount = Number.parseFloat(billForm.amount) || 0
+                        const dueDate = billForm.dueDate || '01'
                         if (name && amount > 0) handleBillSubmit({ name, amount, dueDate })
                       }} className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                       {editingBill ? 'Update Bill' : 'Add Bill'}
@@ -2571,7 +2723,7 @@ const SalaryPlanner: React.FC = () => {
                         <p className="text-sm text-gray-600 dark:text-gray-300">{formatCurrency(bill.amount)}</p>
                       </div>
                       <div className="flex space-x-1 sm:space-x-2 shrink-0">
-                        <button onClick={() => { setEditingBill(bill); setShowBillForm(true); }} className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"><Edit2 className="h-4 w-4" /></button>
+                        <button onClick={() => { setEditingBill(bill); setShowBillForm(true); }} className="p-2 rounded border border-slate-300/80 dark:border-slate-600 bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70"><Edit2 className="h-4 w-4" /></button>
                         <button onClick={() => toggleBillStatus(bill._id)} className="p-2 rounded text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20"><Check className="h-4 w-4" /></button>
                         <button onClick={() => deleteBill(bill._id)} className="p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"><Trash2 className="h-4 w-4" /></button>
                       </div>
@@ -2590,15 +2742,33 @@ const SalaryPlanner: React.FC = () => {
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Subscriptions</h3>
-              <button
-                onClick={() => {
-                  setEditingSubscription(null)
-                  setShowSubscriptionForm(true)
-                }}
-                className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center whitespace-nowrap text-sm"
-              >
-                <Plus className="h-4 w-4 mr-2" /> Add
-              </button>
+              <div className="flex items-center space-x-2">
+                {hasDefaults() ? (
+                  <button onClick={() => removeDefaults(currentMonth)} className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center whitespace-nowrap text-sm">
+                    <Trash2 className="h-4 w-4 mr-2" /> Remove Defaults
+                  </button>
+                ) : (
+                  <button onClick={() => initializeDefaults(currentMonth)} className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center whitespace-nowrap text-sm">
+                    <Plus className="h-4 w-4 mr-2" /> Add Defaults
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setEditingSubscription(null)
+                    setSubscriptionForm({
+                      name: '',
+                      provider: '',
+                      monthlyCost: '',
+                      renewalDate: '01',
+                      category: 'Entertainment'
+                    })
+                    setShowSubscriptionForm(true)
+                  }}
+                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center whitespace-nowrap text-sm"
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add
+                </button>
+              </div>
             </div>
             <div className="space-y-3 overflow-y-auto flex-1 pr-1">
               {subscriptions.length === 0 ? (
@@ -2619,7 +2789,7 @@ const SalaryPlanner: React.FC = () => {
                             setEditingSubscription(sub)
                             setShowSubscriptionForm(true)
                           }}
-                          className="p-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                          className="p-2 rounded border border-slate-300/80 dark:border-slate-600 bg-white/90 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700/70"
                           title="Edit subscription"
                         >
                           <Edit2 className="h-4 w-4" />
@@ -2713,28 +2883,28 @@ const SalaryPlanner: React.FC = () => {
             <div className="space-y-4">
               <input
                 type="text"
-                id="subscriptionName"
                 placeholder="Subscription name"
-                defaultValue={editingSubscription?.name || ''}
+                value={subscriptionForm.name}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSubscriptionForm((prev) => ({ ...prev, name: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
               <input
                 type="text"
-                id="subscriptionProvider"
                 placeholder="Provider"
-                defaultValue={editingSubscription?.provider || ''}
+                value={subscriptionForm.provider}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSubscriptionForm((prev) => ({ ...prev, provider: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
               <input
                 type="number"
-                id="subscriptionCost"
                 placeholder="Monthly cost"
-                defaultValue={editingSubscription?.monthlyCost || ''}
+                value={subscriptionForm.monthlyCost}
+                onChange={(e: ChangeEvent<HTMLInputElement>) => setSubscriptionForm((prev) => ({ ...prev, monthlyCost: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400"
               />
               <select
-                id="subscriptionRenewalDate"
-                defaultValue={editingSubscription?.renewalDate || '01'}
+                value={subscriptionForm.renewalDate}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setSubscriptionForm((prev) => ({ ...prev, renewalDate: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100"
               >
                 {Array.from({ length: 31 }, (_, i) => i + 1).map(day => (
@@ -2744,8 +2914,8 @@ const SalaryPlanner: React.FC = () => {
                 ))}
               </select>
               <select
-                id="subscriptionCategory"
-                defaultValue={editingSubscription?.category || 'Entertainment'}
+                value={subscriptionForm.category}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => setSubscriptionForm((prev) => ({ ...prev, category: e.target.value }))}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 text-gray-900 dark:text-gray-100"
               >
                 <option value="Entertainment">Entertainment</option>
@@ -2756,11 +2926,11 @@ const SalaryPlanner: React.FC = () => {
               </select>
               <button
                 onClick={() => {
-                  const name = (document.getElementById('subscriptionName') as HTMLInputElement | null)?.value || ''
-                  const provider = (document.getElementById('subscriptionProvider') as HTMLInputElement | null)?.value || ''
-                  const monthlyCost = Number.parseFloat((document.getElementById('subscriptionCost') as HTMLInputElement | null)?.value || '0')
-                  const renewalDate = (document.getElementById('subscriptionRenewalDate') as HTMLSelectElement | null)?.value || '01'
-                  const category = (document.getElementById('subscriptionCategory') as HTMLSelectElement | null)?.value || 'Entertainment'
+                  const name = subscriptionForm.name.trim()
+                  const provider = subscriptionForm.provider.trim()
+                  const monthlyCost = Number.parseFloat(subscriptionForm.monthlyCost || '0')
+                  const renewalDate = subscriptionForm.renewalDate || '01'
+                  const category = subscriptionForm.category || 'Entertainment'
                   if (name && provider && monthlyCost > 0) {
                     handleSubscriptionSubmit({ name, provider, monthlyCost, renewalDate, category })
                   }
@@ -2799,3 +2969,5 @@ const SalaryPlanner: React.FC = () => {
 }
 
 export default SalaryPlanner
+
+
