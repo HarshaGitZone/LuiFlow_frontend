@@ -1095,8 +1095,8 @@ const Budgets: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                <PiggyBank className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <div className="p-3 bg-blue-600 dark:bg-blue-500 rounded-xl">
+                <PiggyBank className="h-6 w-6 text-white" strokeWidth={2.5} />
               </div>
               <span className="text-xs font-medium px-2 py-1 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-lg">
                 Total
@@ -1112,8 +1112,8 @@ const Budgets: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
-                <TrendingUp className="h-6 w-6 text-emerald-600 dark:text-emerald-400" />
+              <div className="p-3 bg-emerald-600 dark:bg-emerald-500 rounded-xl">
+                <TrendingUp className="h-6 w-6 text-white" strokeWidth={2.5} />
               </div>
               <span className="text-xs font-medium px-2 py-1 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-lg">
                 Spent
@@ -1129,8 +1129,8 @@ const Budgets: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl">
-                <Wallet className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+              <div className="p-3 bg-indigo-600 dark:bg-indigo-500 rounded-xl">
+                <Wallet className="h-6 w-6 text-white" strokeWidth={2.5} />
               </div>
               <span className="text-xs font-medium px-2 py-1 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-lg">
                 Remaining
@@ -1146,8 +1146,8 @@ const Budgets: React.FC = () => {
 
           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 flex flex-col justify-between hover:shadow-md transition-shadow">
             <div className="flex justify-between items-start mb-4">
-              <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
-                <PieChart className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <div className="p-3 bg-purple-600 dark:bg-purple-500 rounded-xl">
+                <PieChart className="h-6 w-6 text-white" strokeWidth={2.5} />
               </div>
               <span className="text-xs font-medium px-2 py-1 bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-gray-300 rounded-lg">
                 Usage
