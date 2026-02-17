@@ -2084,6 +2084,18 @@ interface MonthlyTransactionFlow {
   netFlow: number;
 }
 
+interface OverallTransactionSummary {
+  totalIncome: number;
+  totalExpenses: number;
+  netFlow: number;
+}
+
+interface StockPerformance {
+  totalInvested: number;
+  currentValue: number;
+  totalPnL: number;
+}
+
 const SalaryPlanner: React.FC = () => {
   const { user } = useAuth()
   const { formatAmount } = useCurrency()
@@ -2109,6 +2121,16 @@ const SalaryPlanner: React.FC = () => {
     totalIncome: 0,
     totalExpenses: 0,
     netFlow: 0
+  })
+  const [overallTransactionSummary, setOverallTransactionSummary] = useState<OverallTransactionSummary>({
+    totalIncome: 0,
+    totalExpenses: 0,
+    netFlow: 0
+  })
+  const [stockPerformance, setStockPerformance] = useState<StockPerformance>({
+    totalInvested: 0,
+    currentValue: 0,
+    totalPnL: 0
   })
   const [showBillForm, setShowBillForm] = useState<boolean>(false)
   const [showGoalForm, setShowGoalForm] = useState<boolean>(false)
@@ -2157,10 +2179,49 @@ const SalaryPlanner: React.FC = () => {
       
       await loadSubscriptionSummary(month)
       await loadCumulativeSavings()
+      await loadStockPerformance()
+      await loadOverallTransactionSummary()
     } catch (error) {
       console.error('Error loading salary planner:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadOverallTransactionSummary = async () => {
+    try {
+      const response = await api.get('/api/transactions/summary')
+      setOverallTransactionSummary({
+        totalIncome: Number(response.data?.totalIncome) || 0,
+        totalExpenses: Number(response.data?.totalExpenses) || 0,
+        netFlow: Number(response.data?.netFlow) || 0
+      })
+    } catch (error) {
+      console.error('Error loading overall transaction summary:', error)
+      setOverallTransactionSummary({
+        totalIncome: 0,
+        totalExpenses: 0,
+        netFlow: 0
+      })
+    }
+  }
+
+  const loadStockPerformance = async () => {
+    try {
+      const response = await api.get('/api/portfolio')
+      const stats = response.data?.stats || {}
+      setStockPerformance({
+        totalInvested: Number(stats.totalInvested) || 0,
+        currentValue: Number(stats.currentValue) || 0,
+        totalPnL: Number(stats.totalPnL) || 0
+      })
+    } catch (error) {
+      console.error('Error loading stock performance:', error)
+      setStockPerformance({
+        totalInvested: 0,
+        currentValue: 0,
+        totalPnL: 0
+      })
     }
   }
 
@@ -2310,6 +2371,28 @@ const SalaryPlanner: React.FC = () => {
       loadSalaryPlanner()
     }
   }, [user, currentMonth])
+
+  useEffect(() => {
+    const handlePortfolioUpdated = () => {
+      loadStockPerformance()
+    }
+
+    window.addEventListener('portfolio-updated', handlePortfolioUpdated)
+    return () => {
+      window.removeEventListener('portfolio-updated', handlePortfolioUpdated)
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleTransactionUpdated = () => {
+      loadOverallTransactionSummary()
+    }
+
+    window.addEventListener('transaction-updated', handleTransactionUpdated)
+    return () => {
+      window.removeEventListener('transaction-updated', handleTransactionUpdated)
+    }
+  }, [])
 
   useEffect(() => {
     if (!showBillForm) return
@@ -2616,7 +2699,11 @@ const SalaryPlanner: React.FC = () => {
   const previousMonthsSavings = cumulativeSavings.monthlyHistory
     .filter((entry) => entry.month !== currentMonth)
     .reduce((sum, entry) => sum + (Number(entry.saved) || 0), 0)
-  const totalSavingsValue = previousMonthsSavings + currentMonthSavings
+  const totalSavingsValue =
+    previousMonthsSavings +
+    currentMonthSavings +
+    stockPerformance.totalPnL +
+    overallTransactionSummary.netFlow
   const safeDailySpending = calculateSafeDailySpending()
   const projectedOverspend = calculateProjectedOverspend()
 
@@ -2885,6 +2972,15 @@ const SalaryPlanner: React.FC = () => {
               <div className="p-4 bg-purple-50 dark:bg-violet-900/35 rounded-lg">
                 <h4 className="font-medium text-gray-900 dark:text-violet-100 mb-2">Available to Spend</h4>
                 <p className="text-2xl font-bold text-purple-700 dark:text-violet-300">{formatCurrency(availableToSpend)}</p>
+              </div>
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-lg">
+                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Stocks P/L</h4>
+                <p className={`text-2xl font-bold ${stockPerformance.totalPnL >= 0 ? 'text-green-600 dark:text-green-300' : 'text-red-600 dark:text-red-300'}`}>
+                  {formatCurrency(stockPerformance.totalPnL)}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Current Value {formatCurrency(stockPerformance.currentValue)} | Invested {formatCurrency(stockPerformance.totalInvested)}
+                </p>
               </div>
             </div>
           </div>
