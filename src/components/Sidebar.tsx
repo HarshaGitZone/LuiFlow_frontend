@@ -26,16 +26,19 @@ const Sidebar: React.FC = () => {
   const location = useLocation()
 
   const navigation: NavigationItem[] = [
-    { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { name: 'Transactions', href: '/transactions', icon: Receipt },
+
+    { name: 'Analytics', href: '/analytics', icon: TrendingUp },
+     { name: 'Budgets', href: '/budgets', icon: PiggyBank },
     { name: 'Calendar', href: '/calendar', icon: Calendar },
-    { name: 'Budgets', href: '/budgets', icon: PiggyBank },
+        { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+   { name: 'Debt Manager', href: '/debt-manager', icon: CreditCard },
+   { name: 'Exports', href: '/reports', icon: FileDown },
+      { name: 'Import', href: '/import', icon: Upload },
+    
     { name: 'Salary Planner', href: '/salary-planner', icon: DollarSign },
     { name: 'Stocks', href: '/stocks', icon: BarChart3 },
-    { name: 'Debt Manager', href: '/debt-manager', icon: CreditCard },
-    { name: 'Analytics', href: '/analytics', icon: TrendingUp },
-    { name: 'Import', href: '/import', icon: Upload },
-    { name: 'Exports', href: '/reports', icon: FileDown },
+     { name: 'Transactions', href: '/transactions', icon: Receipt },
+ 
     // { name: 'Profile', href: '/profile', icon: User },
     // { name: 'Settings', href: '/settings', icon: Settings },
   ]

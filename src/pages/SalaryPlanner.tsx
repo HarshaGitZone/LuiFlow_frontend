@@ -2902,19 +2902,19 @@ const SalaryPlanner: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
           {/* Fixed Bills Section */}
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col md:min-h-[400px]">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Fixed Bills</h3>
-              <div className="flex items-center space-x-2">
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                 {hasDefaults() ? (
-                  <button onClick={() => removeDefaults(currentMonth)} className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center whitespace-nowrap text-sm">
+                  <button onClick={() => removeDefaults(currentMonth)} className="w-full sm:w-auto px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center text-sm">
                     <Trash2 className="h-4 w-4 mr-2" /> Remove Defaults
                   </button>
                 ) : (
-                  <button onClick={() => initializeDefaults(currentMonth)} className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center whitespace-nowrap text-sm">
+                  <button onClick={() => initializeDefaults(currentMonth)} className="w-full sm:w-auto px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center justify-center text-sm">
                     <Plus className="h-4 w-4 mr-2" /> Add Defaults
                   </button>
                 )}
-                <button onClick={() => { setEditingBill(null); setBillForm({ name: '', amount: '', dueDate: '01' }); setShowBillForm(true) }} className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center whitespace-nowrap text-sm">
+                <button onClick={() => { setEditingBill(null); setBillForm({ name: '', amount: '', dueDate: '01' }); setShowBillForm(true) }} className="w-full sm:w-auto px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center text-sm">
                   <Plus className="h-4 w-4 mr-2" /> Add Bill
                 </button>
               </div>
@@ -2977,15 +2977,15 @@ const SalaryPlanner: React.FC = () => {
 
           {/* Subscriptions Row (center) */}
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-4 sm:p-6 h-full flex flex-col">
-            <div className="flex items-center justify-between mb-4">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Subscriptions</h3>
-              <div className="flex items-center space-x-2">
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                 {hasDefaults() ? (
-                  <button onClick={() => removeDefaults(currentMonth)} className="px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center whitespace-nowrap text-sm">
+                  <button onClick={() => removeDefaults(currentMonth)} className="w-full sm:w-auto px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center text-sm">
                     <Trash2 className="h-4 w-4 mr-2" /> Remove Defaults
                   </button>
                 ) : (
-                  <button onClick={() => initializeDefaults(currentMonth)} className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center whitespace-nowrap text-sm">
+                  <button onClick={() => initializeDefaults(currentMonth)} className="w-full sm:w-auto px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 flex items-center justify-center text-sm">
                     <Plus className="h-4 w-4 mr-2" /> Add Defaults
                   </button>
                 )}
@@ -3001,7 +3001,7 @@ const SalaryPlanner: React.FC = () => {
                     })
                     setShowSubscriptionForm(true)
                   }}
-                  className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center whitespace-nowrap text-sm"
+                  className="w-full sm:w-auto px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center justify-center text-sm"
                 >
                   <Plus className="h-4 w-4 mr-2" /> Add
                 </button>
