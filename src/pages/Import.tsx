@@ -621,6 +621,7 @@ const Import: React.FC = () => {
   const [historyData, setHistoryData] = useState<HistoryItem[]>([])
   const [loadingHistory, setLoadingHistory] = useState<boolean>(false)
   const [retryRows, setRetryRows] = useState<RetryRow[]>([])
+  const [retryReadyRows, setRetryReadyRows] = useState<RetryRow[]>([])
   const [retryingRows, setRetryingRows] = useState<boolean>(false)
   const [retryFeedback, setRetryFeedback] = useState<string | null>(null)
   const [retryError, setRetryError] = useState<string | null>(null)
@@ -648,6 +649,7 @@ const Import: React.FC = () => {
           setImportResult(savedState.importResult)
           setDryRunResult(savedState.dryRunResult)
           setRetryRows(savedState.retryRows || [])
+          setRetryReadyRows(savedState.retryReadyRows || [])
           setRetryFeedback(savedState.retryFeedback || null)
           setRetryError(savedState.retryError || null)
           setCurrentPage(savedState.currentPage || 1)
@@ -672,12 +674,13 @@ const Import: React.FC = () => {
         importResult,
         dryRunResult,
         retryRows,
+        retryReadyRows,
         retryFeedback,
         retryError,
         currentPage
       })
     }
-  }, [file, preview, columnMapping, importStep, importResult, dryRunResult, retryRows, retryFeedback, retryError, currentPage, loadingState])
+  }, [file, preview, columnMapping, importStep, importResult, dryRunResult, retryRows, retryReadyRows, retryFeedback, retryError, currentPage, loadingState])
 
   const fetchHistory = async () => {
     try {
@@ -708,6 +711,7 @@ const Import: React.FC = () => {
     setDryRunResult(null)
     setCurrentPage(1)
     setRetryRows([])
+    setRetryReadyRows([])
     setRetryFeedback(null)
     setRetryError(null)
   }
@@ -772,9 +776,23 @@ const Import: React.FC = () => {
 
     const latestRetryRows = createRetryRows(validationResponse.data)
     setRetryRows(latestRetryRows)
+    const validation = validationResponse.data?.validation || {}
+    const blockingErrors: ValidationError[] = Array.isArray(validation.errors)
+      ? validation.errors.filter((errorItem: ValidationError) => !errorItem.isDuplicate)
+      : []
+    const duplicates: ValidationError[] = Array.isArray(validation.duplicates)
+      ? validation.duplicates
+      : []
+    const blockedRetryRowNumbers = new Set<number>(
+      [...blockingErrors, ...duplicates]
+        .map((errorItem) => Number(errorItem.row))
+        .filter((rowNumber) => Number.isFinite(rowNumber) && rowNumber > 0)
+    )
     return {
       dryRunResult: validationResponse.data,
-      retryRows: latestRetryRows
+      retryRows: latestRetryRows,
+      duplicates,
+      blockedRetryRowNumbers
     }
   }
 
@@ -870,24 +888,65 @@ const Import: React.FC = () => {
         },
         timeout: 120000 
       })
+      let insertedRows = Number(response.data?.summary?.insertedRows) || 0
+      let duplicateRows = Number(response.data?.summary?.duplicateRows) || 0
+      let remainingErrors = Number(response.data?.summary?.errors) || 0
+      const totalRows = Number(dryRunResult?.summary?.totalRows) || Number(response.data?.summary?.totalRows) || 0
+      const mergedErrors = Array.isArray(response.data?.errors) ? [...response.data.errors] : []
 
-      if (response.data && response.data.success) {
-        setImportResult(response.data)
+      if (retryReadyRows.length > 0) {
+        const retryHeaders = getRetryHeaders()
+        if (retryHeaders.length > 0) {
+          const retryCsv = buildRetryCsv(retryHeaders, retryReadyRows)
+          const retryBaseName = file.name.replace(/\.csv$/i, '')
+          const retryFile = new File([retryCsv], `${retryBaseName}-retry-commit.csv`, { type: 'text/csv' })
+          const retryImportFormData = new FormData()
+          retryImportFormData.append('file', retryFile)
+          retryImportFormData.append('columnMapping', JSON.stringify(columnMapping))
+
+          const retryResponse = await api.post(API.CSV_IMPORT, retryImportFormData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            },
+            timeout: 120000
+          })
+
+          insertedRows += Number(retryResponse.data?.summary?.insertedRows) || 0
+          duplicateRows += Number(retryResponse.data?.summary?.duplicateRows) || 0
+          remainingErrors = Number(retryResponse.data?.summary?.errors) || 0
+
+          if (Array.isArray(retryResponse.data?.errors)) {
+            mergedErrors.push(...retryResponse.data.errors)
+          }
+        }
+      }
+
+      const combinedResult: ImportResult = {
+        success: insertedRows > 0 || duplicateRows > 0,
+        summary: {
+          totalRows,
+          insertedRows,
+          duplicateRows,
+          skippedRows: remainingErrors,
+          errors: remainingErrors
+        },
+        errors: mergedErrors.slice(0, 50)
+      }
+
+      if (combinedResult.success) {
+        setImportResult(combinedResult)
+        setRetryRows([])
+        setRetryReadyRows([])
         setImportStep(4)
         window.dispatchEvent(new CustomEvent('transaction-updated'))
         setTimeout(() => {
-          const { insertedRows, duplicateRows } = response.data.summary;
-          alert(`Import completed! ${insertedRows} imported, ${duplicateRows} duplicates skipped.`)
+          alert(`Import completed! ${combinedResult.summary.insertedRows} imported, ${combinedResult.summary.duplicateRows} duplicates skipped.`)
           navigate('/transactions')
         }, 2000)
       } else {
-        let errorDetails = '';
-        if (response.data.errors && response.data.errors.length > 0) {
-          errorDetails = `\nFirst error: ${response.data.errors[0].error} (Row ${response.data.errors[0].row})`;
-        } else if (response.data.debug) {
-          errorDetails = `\nDebug: Valid Rows: ${response.data.debug.resultsLength}, Processed: ${response.data.debug.processedRows}, Inserted: ${response.data.debug.insertedCount}`;
-        }
-        alert(`Import failed: ${response.data?.error || 'Unknown error'}${errorDetails}`)
+        const firstError = combinedResult.errors?.[0]
+        const errorDetails = firstError ? `\nFirst error: ${firstError.error} (Row ${firstError.row})` : ''
+        alert(`Import failed: no rows were committed.${errorDetails}`)
       }
     } catch (error: any) {
       console.error('Import error:', error)
@@ -924,6 +983,7 @@ const Import: React.FC = () => {
       })
       setDryRunResult(response.data)
       setRetryRows(createRetryRows(response.data))
+      setRetryReadyRows([])
       setRetryFeedback(null)
       setRetryError(null)
       setImportStep(3)
@@ -944,6 +1004,7 @@ const Import: React.FC = () => {
     setCurrentPage(1)
     setImportStep(1)
     setRetryRows([])
+    setRetryReadyRows([])
     setRetryFeedback(null)
     setRetryError(null)
   }
@@ -973,26 +1034,25 @@ const Import: React.FC = () => {
       setRetryFeedback(null)
       setRetryError(null)
 
-      const attemptedRows = retryRows.length
+      const attemptedRows = retryRows.map((row) => ({
+        ...row,
+        values: { ...row.values }
+      }))
       const retryCsv = buildRetryCsv(retryHeaders, retryRows)
       const originalBaseName = file?.name ? file.name.replace(/\.csv$/i, '') : 'transactions'
       const retryFile = new File([retryCsv], `${originalBaseName}-failed-rows-retry.csv`, { type: 'text/csv' })
 
-      const importFormData = new FormData()
-      importFormData.append('file', retryFile)
-      importFormData.append('columnMapping', JSON.stringify(columnMapping))
-
-      const importResponse = await api.post(API.CSV_IMPORT, importFormData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-
-      const insertedRows = importResponse.data?.summary?.insertedRows || 0
-      const duplicateRows = importResponse.data?.summary?.duplicateRows || 0
-
       const refreshed = await refreshRetryRowsFromDryRun(retryFile)
       const remainingErrorRows = refreshed.retryRows.length
+      const duplicateRetryRows = refreshed.duplicates.length
+      const newlyReadyRows = attemptedRows.filter((_, index) => !refreshed.blockedRetryRowNumbers.has(index + 1))
+      const movedToReady = newlyReadyRows.length
+
+      setRetryReadyRows((prev) => {
+        const keyed = new Map(prev.map((row) => [row.sourceRow, row]))
+        newlyReadyRows.forEach((row) => keyed.set(row.sourceRow, row))
+        return Array.from(keyed.values())
+      })
 
       setDryRunResult((prev) => {
         if (!prev) return prev
@@ -1000,25 +1060,14 @@ const Import: React.FC = () => {
           ...prev,
           summary: {
             ...prev.summary,
-            errorRows: remainingErrorRows
+            validRows: (prev.summary.validRows || 0) + movedToReady,
+            errorRows: remainingErrorRows,
+            duplicateRows: duplicateRetryRows
           }
         }
       })
 
-      if (insertedRows > 0) {
-        window.dispatchEvent(new CustomEvent('transaction-updated'))
-      }
-
-      if (remainingErrorRows === 0) {
-        setRetryFeedback(`Retry processed ${attemptedRows} row(s): ${insertedRows} imported, ${duplicateRows} duplicates skipped, 0 still failing.`)
-      } else {
-        setRetryFeedback(`Retry processed ${attemptedRows} row(s): ${insertedRows} imported, ${duplicateRows} duplicates skipped, ${remainingErrorRows} still failing.`)
-      }
-
-      if (remainingErrorRows === 0 && (dryRunResult?.summary.validRows || 0) === 0 && insertedRows > 0) {
-        setImportResult(importResponse.data)
-        setImportStep(4)
-      }
+      setRetryFeedback(`Retry validation complete: ${movedToReady} row(s) moved to ready, ${remainingErrorRows} invalid, ${duplicateRetryRows} duplicate.`)
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || 'Failed to retry failed rows'
       setRetryError(message)
