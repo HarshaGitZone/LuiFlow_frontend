@@ -1100,7 +1100,7 @@ const Import: React.FC = () => {
               <button
                 onClick={() => setShowHistory(!showHistory)}
                 className={`flex items-center justify-center px-4 py-2 rounded-lg transition-colors ${showHistory
-                  ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                  ? 'bg-blue-100 text-blue-700 border border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-700'
                   : 'bg-white dark:bg-slate-900 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-800'
                   }`}
               >
@@ -1121,17 +1121,17 @@ const Import: React.FC = () => {
           </div>
 
           {hasSavedState && (
-            <div className="mt-4 p-4 bg-sky-100 border border-sky-300 rounded-lg">
+            <div className="mt-4 p-4 bg-sky-100 border border-sky-300 rounded-lg dark:bg-sky-900/30 dark:border-sky-700">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-start sm:items-center">
-                  <AlertCircle className="h-5 w-5 text-sky-700 mr-2" />
-                  <p className="text-sm text-sky-950">
+                  <AlertCircle className="h-5 w-5 text-sky-700 dark:text-sky-300 mr-2" />
+                  <p className="text-sm text-sky-950 dark:text-sky-100">
                     You have a previous import session saved. Upload the same CSV file to continue where you left off.
                   </p>
                 </div>
                 <button
                   onClick={clearSavedState}
-                  className="p-1 text-sky-700 hover:bg-sky-200 rounded"
+                  className="p-1 text-sky-700 dark:text-sky-300 hover:bg-sky-200 dark:hover:bg-sky-900/50 rounded"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -1149,7 +1149,7 @@ const Import: React.FC = () => {
               </div>
               <button
                 onClick={fetchHistory}
-                className="p-2 text-gray-500 hover:text-blue-600 transition-colors"
+                className="p-2 text-gray-500 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-300 transition-colors"
                 title="Refresh"
               >
                 <RotateCcw className={`h-4 w-4 ${loadingHistory ? 'animate-spin' : ''}`} />
@@ -1157,13 +1157,13 @@ const Import: React.FC = () => {
             </div>
 
             {loadingHistory ? (
-              <div className="p-12 text-center text-gray-500">
+              <div className="p-12 text-center text-gray-500 dark:text-gray-300">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
                 Loading history...
               </div>
             ) : historyData.length === 0 ? (
-              <div className="p-12 text-center text-gray-500">
-                <History className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+              <div className="p-12 text-center text-gray-500 dark:text-gray-300">
+                <History className="h-12 w-12 mx-auto mb-4 text-gray-300 dark:text-gray-500" />
                 <p>No import history found.</p>
               </div>
             ) : (
@@ -1171,12 +1171,12 @@ const Import: React.FC = () => {
                 <table className="min-w-[720px] w-full divide-y divide-gray-200 dark:divide-slate-700">
                   <thead className="bg-gray-50 dark:bg-slate-800">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">File Name</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total Rows</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Imported</th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Errors</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">File Name</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Total Rows</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Imported</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Errors</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white dark:bg-slate-900 divide-y divide-gray-200 dark:divide-slate-700">
@@ -1192,9 +1192,9 @@ const Import: React.FC = () => {
                           {item.fileName}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${item.status === 'success' ? 'bg-green-100 text-green-800' :
-                            item.status === 'partial' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-red-100 text-red-800'
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${item.status === 'success' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200 dark:border dark:border-green-700' :
+                            item.status === 'partial' ? 'bg-yellow-100 text-yellow-800 dark:bg-amber-900/30 dark:text-amber-200 dark:border dark:border-amber-700' :
+                              'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 dark:border dark:border-red-700'
                             }`}>
                             {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                           </span>
@@ -1202,10 +1202,10 @@ const Import: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-500 dark:text-gray-400">
                           {item.summary?.totalRows || 0}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 font-medium">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-green-600 dark:text-green-300 font-medium">
                           {item.summary?.insertedRows || 0}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600 font-medium">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-red-600 dark:text-red-300 font-medium">
                           {item.summary?.errors || 0}
                         </td>
                       </tr>
@@ -1267,19 +1267,19 @@ const Import: React.FC = () => {
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">CSV files only (MAX. 10MB)</p>
             </div>
             {file && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg">
                 <div className="flex items-center">
-                  <FileText className="h-5 w-5 text-blue-600 mr-2" />
-                  <span className="text-sm font-medium text-blue-900">{file.name}</span>
+                  <FileText className="h-5 w-5 text-blue-600 dark:text-blue-300 mr-2" />
+                  <span className="text-sm font-medium text-blue-900 dark:text-blue-100">{file.name}</span>
                 </div>
-                <div className="text-xs text-blue-700 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
+                <div className="text-xs text-blue-700 dark:text-blue-200 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</div>
               </div>
             )}
             {uploading && (
-              <div className="mt-4 p-4 bg-yellow-50 rounded-lg">
+              <div className="mt-4 p-4 bg-yellow-50 dark:bg-amber-900/30 border border-yellow-200 dark:border-amber-700 rounded-lg">
                 <div className="flex items-center">
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-yellow-600 mr-2"></div>
-                  <span className="text-sm font-medium text-yellow-900">Processing CSV...</span>
+                  <span className="text-sm font-medium text-yellow-900 dark:text-amber-200">Processing CSV...</span>
                 </div>
               </div>
             )}

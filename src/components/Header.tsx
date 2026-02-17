@@ -361,12 +361,34 @@ const Header: React.FC = () => {
       fetchNotifications()
     }
 
+    const handleSalaryPlannerUpdate = (event: Event) => {
+      setNotificationsCleared(false)
+      const customEvent = event as CustomEvent
+      const action = customEvent.detail?.action
+      const bill = customEvent.detail?.bill
+
+      if (action === 'fixed-bill-status-changed' && bill) {
+        const billName = bill.name || 'Bill'
+        if (bill.status === 'paid') {
+          addActivityNotification(`${billName} is marked as paid.`, { severity: 'info', type: 'bill' })
+        } else {
+          addActivityNotification(`${billName} is marked as unpaid.`, { severity: 'warning', type: 'bill' })
+        }
+      } else {
+        addActivityNotification('Salary planner updated.', { severity: 'info', type: 'system' })
+      }
+
+      fetchNotifications({ force: true })
+    }
+
     window.addEventListener('transaction-updated', handleTransactionUpdate)
     window.addEventListener('budget-updated', handleBudgetUpdate as EventListener)
+    window.addEventListener('salary-planner-updated', handleSalaryPlannerUpdate as EventListener)
 
     return () => {
       window.removeEventListener('transaction-updated', handleTransactionUpdate)
       window.removeEventListener('budget-updated', handleBudgetUpdate as EventListener)
+      window.removeEventListener('salary-planner-updated', handleSalaryPlannerUpdate as EventListener)
     }
   }, [user, notificationsCleared, quickStats.todayExpense, quickStats.todayIncome, quickStats.weekExpense, quickStats.weekIncome])
 

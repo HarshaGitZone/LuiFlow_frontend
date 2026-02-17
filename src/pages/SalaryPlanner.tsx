@@ -2096,9 +2096,29 @@ interface StockPerformance {
   totalPnL: number;
 }
 
+interface PurchaseGoal {
+  id: string;
+  name: string;
+  amount: number;
+}
+
 const SalaryPlanner: React.FC = () => {
   const { user } = useAuth()
-  const { formatAmount } = useCurrency()
+  const { formatAmount, currencyMeta } = useCurrency()
+
+  const normalizePurchaseGoals = (goals: any[]): PurchaseGoal[] =>
+    (Array.isArray(goals) ? goals : [])
+      .map((goal: any) => ({
+        id: String(goal._id || goal.id || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`),
+        name: String(goal.name || '').trim(),
+        amount: Number(goal.amount) || 0
+      }))
+      .filter((goal: PurchaseGoal) => goal.name && goal.amount > 0)
+
+  const getPurchaseGoalsStorageKey = (month: string) => {
+    const userKey = String((user as any)?._id || (user as any)?.id || (user as any)?.email || 'anonymous')
+    return `salaryPlanner_purchaseGoals_${userKey}_${month}`
+  }
   
   // State management
   const [salary, setSalary] = useState<Salary>({ amount: 0, creditDate: '01', month: new Date().toISOString().slice(0, 7) })
@@ -2150,6 +2170,9 @@ const SalaryPlanner: React.FC = () => {
   const [saving, setSaving] = useState<boolean>(false)
   const [currentMonth] = useState<string>(new Date().toISOString().slice(0, 7))
   const [actionMessage, setActionMessage] = useState<{ type: 'success' | 'info' | 'error'; text: string } | null>(null)
+  const [purchaseGoals, setPurchaseGoals] = useState<PurchaseGoal[]>([])
+  const [purchaseGoalName, setPurchaseGoalName] = useState<string>('')
+  const [purchaseGoalAmount, setPurchaseGoalAmount] = useState<string>('')
 
   const showActionMessage = (type: 'success' | 'info' | 'error', text: string) => {
     setActionMessage({ type, text })
@@ -2167,6 +2190,23 @@ const SalaryPlanner: React.FC = () => {
         setFixedBills(data.fixedBills || [])
         setVariableExpenses(data.variableExpenses || { totalSpent: 0, categories: [] })
         setSavingsGoals(data.savingsGoals || [])
+        const backendPurchaseGoals = normalizePurchaseGoals(data.purchaseGoals || [])
+        if (backendPurchaseGoals.length > 0) {
+          setPurchaseGoals(backendPurchaseGoals)
+          localStorage.setItem(getPurchaseGoalsStorageKey(month), JSON.stringify(backendPurchaseGoals))
+        } else {
+          const rawLocalGoals = localStorage.getItem(getPurchaseGoalsStorageKey(month))
+          if (rawLocalGoals) {
+            try {
+              const localGoals = normalizePurchaseGoals(JSON.parse(rawLocalGoals))
+              setPurchaseGoals(localGoals)
+            } catch {
+              setPurchaseGoals([])
+            }
+          } else {
+            setPurchaseGoals([])
+          }
+        }
         setSubscriptions(data.subscriptions || [])
         setMonthlyTransactionFlow(data.transactionFlow || { totalIncome: 0, totalExpenses: 0, netFlow: 0 })
         
@@ -2421,7 +2461,7 @@ const SalaryPlanner: React.FC = () => {
   }
 
   const calculateSafeDailySpending = () => {
-    const remainingAfterFixed = salary.amount - fixedBills.reduce((sum, bill) => sum + (bill.status === 'paid' ? 0 : bill.amount), 0)
+    const remainingAfterFixed = salary.amount - fixedBills.reduce((sum, bill) => sum + (bill.status === 'paid' ? bill.amount : 0), 0)
     const remainingAfterSubscriptions = remainingAfterFixed - subscriptions.reduce((sum, sub) => sum + (sub.status === 'active' ? sub.monthlyCost : 0), 0)
     const daysLeft = getDaysLeftInMonth()
     return daysLeft > 0 ? Math.max(0, remainingAfterSubscriptions / daysLeft) : 0
@@ -2490,6 +2530,16 @@ const SalaryPlanner: React.FC = () => {
           updates: { ...bill, status: nextStatus }
         })
         await loadSalaryPlanner(currentMonth)
+        window.dispatchEvent(new CustomEvent('salary-planner-updated', {
+          detail: {
+            action: 'fixed-bill-status-changed',
+            month: currentMonth,
+            bill: {
+              ...bill,
+              status: nextStatus
+            }
+          }
+        }))
         showActionMessage('success', `${bill.name} marked as ${nextStatus === 'paid' ? 'paid' : 'unpaid'} for ${currentMonth}. Monthly amount updated.`)
       }
     } catch (error) {
@@ -2689,23 +2739,76 @@ const SalaryPlanner: React.FC = () => {
   }
 
   const formatCurrency = (amount: number) => formatAmount(amount)
+  const convertUsdToInr = (amountInUsd: number) => {
+    const usdPerInr = Number(currencyMeta?.USD?.rateFromINR) || 0.012
+    if (usdPerInr <= 0) return amountInUsd
+    return amountInUsd / usdPerInr
+  }
 
-  const totalFixedBills = fixedBills.reduce((sum, bill) => sum + (bill.status === 'paid' ? 0 : bill.amount), 0)
+  const totalFixedBills = fixedBills.reduce((sum, bill) => sum + (bill.status === 'paid' ? bill.amount : 0), 0)
   const totalSubscriptionCost = subscriptions.reduce((sum, sub) => sum + (sub.status === 'active' ? sub.monthlyCost : 0), 0)
   const remainingAfterFixed = salary.amount - totalFixedBills
   const remainingAfterSubscriptions = remainingAfterFixed - totalSubscriptionCost
   const availableToSpend = remainingAfterSubscriptions + monthlyTransactionFlow.netFlow
   const currentMonthSavings = availableToSpend
+  const stockPnlInInr = convertUsdToInr(stockPerformance.totalPnL)
+  const stockCurrentValueInInr = convertUsdToInr(stockPerformance.currentValue)
+  const stockInvestedValueInInr = convertUsdToInr(stockPerformance.totalInvested)
   const previousMonthsSavings = cumulativeSavings.monthlyHistory
     .filter((entry) => entry.month !== currentMonth)
     .reduce((sum, entry) => sum + (Number(entry.saved) || 0), 0)
   const totalSavingsValue =
     previousMonthsSavings +
     currentMonthSavings +
-    stockPerformance.totalPnL +
+    stockPnlInInr +
     overallTransactionSummary.netFlow
+  const purchaseGoalsTotal = purchaseGoals.reduce((sum, goal) => sum + goal.amount, 0)
+  const totalSavingsAfterGoals = totalSavingsValue - purchaseGoalsTotal
   const safeDailySpending = calculateSafeDailySpending()
   const projectedOverspend = calculateProjectedOverspend()
+
+  const savePurchaseGoals = async (goals: PurchaseGoal[]) => {
+    localStorage.setItem(getPurchaseGoalsStorageKey(currentMonth), JSON.stringify(goals))
+    try {
+      await api.put('/api/salary-planner', {
+        month: currentMonth,
+        updates: {
+          purchaseGoals: goals.map((goal) => ({ name: goal.name, amount: goal.amount }))
+        }
+      })
+    } catch (error) {
+      console.error('Error saving purchase goals:', error)
+      showActionMessage('error', 'Saved locally. Failed to sync savings goals to server.')
+    }
+  }
+
+  const addPurchaseGoal = () => {
+    const name = purchaseGoalName.trim()
+    const amount = Number.parseFloat(purchaseGoalAmount)
+    if (!name || !Number.isFinite(amount) || amount <= 0) {
+      showActionMessage('error', 'Enter a valid goal name and amount.')
+      return
+    }
+
+    const nextGoals = [
+      ...purchaseGoals,
+      {
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        name,
+        amount
+      }
+    ]
+    setPurchaseGoals(nextGoals)
+    void savePurchaseGoals(nextGoals)
+    setPurchaseGoalName('')
+    setPurchaseGoalAmount('')
+  }
+
+  const removePurchaseGoal = (id: string) => {
+    const nextGoals = purchaseGoals.filter((goal) => goal.id !== id)
+    setPurchaseGoals(nextGoals)
+    void savePurchaseGoals(nextGoals)
+  }
 
   useEffect(() => {
     if (!user || loading) return
@@ -2867,7 +2970,7 @@ const SalaryPlanner: React.FC = () => {
               )}
             </div>
             <div className="mt-4 pt-4 border-t border-gray-200 dark:border-slate-700 flex justify-between text-sm">
-              <span className="text-gray-600 dark:text-gray-300">Total:</span>
+              <span className="text-gray-600 dark:text-gray-300">Paid Total:</span>
               <span className="font-semibold text-red-600 dark:text-red-400">{formatCurrency(totalFixedBills)}</span>
             </div>
           </div>
@@ -2975,11 +3078,11 @@ const SalaryPlanner: React.FC = () => {
               </div>
               <div className="p-4 bg-slate-50 dark:bg-slate-800/80 rounded-lg">
                 <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Stocks P/L</h4>
-                <p className={`text-2xl font-bold ${stockPerformance.totalPnL >= 0 ? 'text-green-600 dark:text-green-300' : 'text-red-600 dark:text-red-300'}`}>
-                  {formatCurrency(stockPerformance.totalPnL)}
+                <p className={`text-2xl font-bold ${stockPnlInInr >= 0 ? 'text-green-600 dark:text-green-300' : 'text-red-600 dark:text-red-300'}`}>
+                  {formatCurrency(stockPnlInInr)}
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Current Value {formatCurrency(stockPerformance.currentValue)} | Invested {formatCurrency(stockPerformance.totalInvested)}
+                  Current Value {formatCurrency(stockCurrentValueInInr)} | Invested {formatCurrency(stockInvestedValueInInr)}
                 </p>
               </div>
             </div>
@@ -2987,8 +3090,8 @@ const SalaryPlanner: React.FC = () => {
         </div>
 
         {/* Savings & Tracker Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl shadow-sm p-4 sm:p-6 flex flex-col">
+        <div className="grid grid-cols-1 md:grid-cols-2 md:items-start gap-6 mt-6">
+          <div className="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-xl shadow-sm p-4 sm:p-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <h3 className="text-lg font-semibold flex items-center"><TrendingUp className="h-6 w-6 mr-2" /> Monthly Savings</h3>
               <div className="flex space-x-2">
@@ -2996,7 +3099,7 @@ const SalaryPlanner: React.FC = () => {
                 <button onClick={() => { const a = prompt('Amount:'); if(a) withdrawManualSavings(parseFloat(a)) }} className="px-2 py-1 bg-white/20 rounded text-xs">Withdraw</button>
               </div>
             </div>
-            <div className="text-center flex-1">
+            <div className="text-center">
               <div className="text-3xl sm:text-4xl font-bold mb-2 break-words">{formatCurrency(currentMonthSavings)}</div>
               <p className="text-blue-100 text-sm">Tracked this month</p>
             </div>
@@ -3007,9 +3110,66 @@ const SalaryPlanner: React.FC = () => {
               <h3 className="text-lg font-semibold flex items-center"><PiggyBank className="h-6 w-6 mr-2" /> Total Savings</h3>
               <div className="flex items-center"><Flame className="h-4 w-4 mr-1" /> <span>{cumulativeSavings.currentStreak}mo streak</span></div>
             </div>
-            <div className="text-center flex-1">
-              <div className="text-3xl sm:text-4xl font-bold mb-2 break-words">{formatCurrency(totalSavingsValue)}</div>
-              <p className="text-emerald-100 text-sm">Portfolio Value</p>
+            <div className="flex-1">
+              <div className="text-center mb-4">
+                <div className="text-3xl sm:text-4xl font-bold mb-2 break-words">{formatCurrency(totalSavingsValue)}</div>
+                <p className="text-emerald-100 text-sm">Portfolio Value</p>
+              </div>
+
+              <div className="rounded-lg bg-white/12 border border-white/30 p-3 mb-3">
+                <p className="text-sm font-semibold mb-2">Savings Goals (Items to Buy)</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    placeholder="Goal name (e.g. Laptop)"
+                    value={purchaseGoalName}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setPurchaseGoalName(e.target.value)}
+                    className="w-full sm:flex-1 px-3 py-2 rounded-lg border border-white/40 bg-white text-gray-900 placeholder:text-gray-500"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Amount"
+                    value={purchaseGoalAmount}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setPurchaseGoalAmount(e.target.value)}
+                    className="w-full sm:w-36 px-3 py-2 rounded-lg border border-white/40 bg-white text-gray-900 placeholder:text-gray-500"
+                  />
+                  <button
+                    onClick={addPurchaseGoal}
+                    className="px-3 py-2 rounded-lg bg-white/25 hover:bg-white/35 border border-white/40 text-sm font-semibold"
+                  >
+                    Add Goal
+                  </button>
+                </div>
+
+                {purchaseGoals.length > 0 && (
+                  <div className="mt-3 space-y-2 max-h-28 overflow-y-auto pr-1">
+                    {purchaseGoals.map((goal) => (
+                      <div key={goal.id} className="flex items-center justify-between bg-black/20 border border-white/20 rounded-lg px-2 py-1.5">
+                        <span className="text-sm truncate pr-2">{goal.name}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-sm font-semibold">{formatCurrency(goal.amount)}</span>
+                          <button onClick={() => removePurchaseGoal(goal.id)} className="text-xs px-2 py-1 rounded bg-red-500/40 hover:bg-red-500/55 border border-red-300/40">
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t border-white/20 pt-3 space-y-1 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-emerald-100">Goals Total</span>
+                  <span className="font-semibold">{formatCurrency(purchaseGoalsTotal)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-emerald-100">After Goals</span>
+                  <span className={`font-bold ${totalSavingsAfterGoals >= 0 ? 'text-white' : 'text-rose-200'}`}>
+                    {formatCurrency(totalSavingsAfterGoals)}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
