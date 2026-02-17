@@ -1365,13 +1365,13 @@ const Import: React.FC = () => {
             </p>
 
             <div className="grid grid-cols-1 gap-3">
-              <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-3">
+              <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-3">
                 <p className="text-xs font-semibold uppercase tracking-wide text-green-800 dark:text-green-300 mb-1">Required Columns</p>
                 <p className="text-sm text-green-900 dark:text-green-200">{CSV_REQUIRED_COLUMNS.join(', ')}</p>
               </div>
-              <div className="rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20 p-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-blue-800 dark:text-blue-300 mb-1">Optional Columns</p>
-                <p className="text-sm text-blue-900 dark:text-blue-200">{CSV_OPTIONAL_COLUMNS.join(', ')}</p>
+              <div className="rounded-lg border border-sky-300 dark:border-sky-800 bg-white dark:bg-sky-950/25 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-sky-800 dark:text-sky-300 mb-1">Optional Columns</p>
+                <p className="text-sm text-sky-900 dark:text-sky-200">{CSV_OPTIONAL_COLUMNS.join(', ')}</p>
               </div>
             </div>
 
