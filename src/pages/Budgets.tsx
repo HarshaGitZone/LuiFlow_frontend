@@ -639,6 +639,8 @@ import React, { useEffect, useMemo, useState, ChangeEvent } from 'react'
 import { Plus, Edit2, Trash2, X, AlertCircle, AlertTriangle, PiggyBank, TrendingUp, Wallet, Calendar, PieChart } from 'lucide-react'
 import { api } from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
+import { useTheme } from '../contexts/ThemeContext'
+import { CartesianGrid, Legend, Line, LineChart as RechartsLineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 // --- Interfaces ---
 interface Budget {
@@ -676,8 +678,25 @@ const INITIAL_FORM: BudgetForm = {
   period: 'Monthly'
 }
 
+const PERIOD_ORDER = ['Daily', 'Weekly', 'Biweekly', 'Monthly', 'Quarterly', 'Yearly'] as const
+
+const normalizePeriodLabel = (period: string): string => {
+  const value = String(period || '').trim()
+  if (!value) return 'Monthly'
+
+  const lower = value.toLowerCase()
+  if (lower.includes('day')) return 'Daily'
+  if (lower.includes('week') && lower.includes('bi')) return 'Biweekly'
+  if (lower.includes('week')) return 'Weekly'
+  if (lower.includes('month')) return 'Monthly'
+  if (lower.includes('quarter')) return 'Quarterly'
+  if (lower.includes('year')) return 'Yearly'
+  return value.charAt(0).toUpperCase() + value.slice(1)
+}
+
 const Budgets: React.FC = () => {
   const { formatAmount } = useCurrency()
+  const { isDark } = useTheme()
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [showAddModal, setShowAddModal] = useState<boolean>(false)
@@ -783,6 +802,69 @@ const Budgets: React.FC = () => {
     const usedPercent = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0
     return { totalBudget, totalSpent, totalRemaining, usedPercent }
   }, [budgets])
+
+  const budgetVsActualByCategory = useMemo(() => {
+    const grouped = budgets.reduce((acc, item) => {
+      const key = item.category?.trim() || 'Uncategorized'
+      const prev = acc.get(key) || { category: key, budgeted: 0, actual: 0 }
+      prev.budgeted += Number(item.amount) || 0
+      prev.actual += Number(item.spent) || 0
+      acc.set(key, prev)
+      return acc
+    }, new Map<string, { category: string; budgeted: number; actual: number }>())
+
+    return Array.from(grouped.values())
+      .map((entry) => ({
+        ...entry,
+        variance: entry.actual - entry.budgeted
+      }))
+      .sort((a, b) => b.budgeted - a.budgeted)
+      .slice(0, 8)
+  }, [budgets])
+
+  const budgetVsActualByPeriod = useMemo(() => {
+    const grouped = budgets.reduce((acc, item) => {
+      const key = normalizePeriodLabel(item.period)
+      const prev = acc.get(key) || { period: key, budgeted: 0, actual: 0 }
+      prev.budgeted += Number(item.amount) || 0
+      prev.actual += Number(item.spent) || 0
+      acc.set(key, prev)
+      return acc
+    }, new Map<string, { period: string; budgeted: number; actual: number }>())
+
+    const getPeriodRank = (period: string) => {
+      const idx = PERIOD_ORDER.indexOf(period as typeof PERIOD_ORDER[number])
+      return idx === -1 ? PERIOD_ORDER.length + period.charCodeAt(0) : idx
+    }
+
+    return Array.from(grouped.values())
+      .map((entry) => ({
+        ...entry,
+        variance: entry.actual - entry.budgeted
+      }))
+      .sort((a, b) => getPeriodRank(a.period) - getPeriodRank(b.period))
+  }, [budgets])
+
+  const chartTheme = useMemo(() => {
+    if (isDark) {
+      return {
+        grid: '#334155',
+        axis: '#cbd5e1',
+        tooltipBg: '#0f172a',
+        tooltipBorder: '#334155',
+        tooltipText: '#f8fafc',
+        legend: '#e2e8f0'
+      }
+    }
+    return {
+      grid: '#cbd5e1',
+      axis: '#475569',
+      tooltipBg: '#ffffff',
+      tooltipBorder: '#e2e8f0',
+      tooltipText: '#0f172a',
+      legend: '#334155'
+    }
+  }, [isDark])
 
   const handleAdd = async () => {
     const errors = validateForm(addForm)
@@ -1170,6 +1252,110 @@ const Budgets: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Budget versus Actual Insights */}
+        <section className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-1">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Budget versus Actual Insights</h2>
+            <span className="text-sm text-gray-500 dark:text-gray-400">Expected budget vs actual spend</span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-4 sm:p-6">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Category Trend</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Top categories by budgeted amount</p>
+              </div>
+              {budgetVsActualByCategory.length > 0 ? (
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsLineChart data={budgetVsActualByCategory} margin={{ top: 8, right: 12, left: 8, bottom: 56 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} opacity={0.35} />
+                      <XAxis
+                        dataKey="category"
+                        angle={-30}
+                        textAnchor="end"
+                        interval={0}
+                        height={70}
+                        tick={{ fontSize: 11, fill: chartTheme.axis }}
+                        axisLine={{ stroke: chartTheme.grid }}
+                        tickLine={{ stroke: chartTheme.grid }}
+                      />
+                      <YAxis
+                        tickFormatter={(value) => formatCurrency(Number(value))}
+                        tick={{ fontSize: 11, fill: chartTheme.axis }}
+                        axisLine={{ stroke: chartTheme.grid }}
+                        tickLine={{ stroke: chartTheme.grid }}
+                        width={88}
+                      />
+                      <Tooltip
+                        formatter={(value: number) => formatCurrency(Number(value))}
+                        contentStyle={{
+                          borderRadius: 12,
+                          border: `1px solid ${chartTheme.tooltipBorder}`,
+                          backgroundColor: chartTheme.tooltipBg,
+                          color: chartTheme.tooltipText
+                        }}
+                        labelStyle={{ color: chartTheme.tooltipText, fontWeight: 600 }}
+                        itemStyle={{ color: chartTheme.tooltipText }}
+                      />
+                      <Legend wrapperStyle={{ color: chartTheme.legend }} />
+                      <Line type="monotone" dataKey="budgeted" name="Budgeted" stroke="#2563eb" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      <Line type="monotone" dataKey="actual" name="Actual" stroke="#dc2626" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                    </RechartsLineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">Create budgets to see category insights.</p>
+              )}
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-4 sm:p-6">
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-gray-900 dark:text-white">Period Trend</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Budgeted vs actual grouped by period</p>
+              </div>
+              {budgetVsActualByPeriod.length > 0 ? (
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartsLineChart data={budgetVsActualByPeriod} margin={{ top: 8, right: 12, left: 8, bottom: 24 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.grid} opacity={0.35} />
+                      <XAxis
+                        dataKey="period"
+                        tick={{ fontSize: 11, fill: chartTheme.axis }}
+                        axisLine={{ stroke: chartTheme.grid }}
+                        tickLine={{ stroke: chartTheme.grid }}
+                      />
+                      <YAxis
+                        tickFormatter={(value) => formatCurrency(Number(value))}
+                        tick={{ fontSize: 11, fill: chartTheme.axis }}
+                        axisLine={{ stroke: chartTheme.grid }}
+                        tickLine={{ stroke: chartTheme.grid }}
+                        width={88}
+                      />
+                      <Tooltip
+                        formatter={(value: number) => formatCurrency(Number(value))}
+                        contentStyle={{
+                          borderRadius: 12,
+                          border: `1px solid ${chartTheme.tooltipBorder}`,
+                          backgroundColor: chartTheme.tooltipBg,
+                          color: chartTheme.tooltipText
+                        }}
+                        labelStyle={{ color: chartTheme.tooltipText, fontWeight: 600 }}
+                        itemStyle={{ color: chartTheme.tooltipText }}
+                      />
+                      <Legend wrapperStyle={{ color: chartTheme.legend }} />
+                      <Line type="monotone" dataKey="budgeted" name="Budgeted" stroke="#0f766e" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                      <Line type="monotone" dataKey="actual" name="Actual" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                    </RechartsLineChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">Create budgets to see period insights.</p>
+              )}
+            </div>
+          </div>
+        </section>
 
         {/* Budgets Grid */}
         <div className="space-y-6">
