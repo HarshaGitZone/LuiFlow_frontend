@@ -2070,12 +2070,18 @@ interface SavingsGoal {
 
 interface CumulativeSavings {
   totalSaved: number;
-  monthlyHistory: Array<{ month: string; saved: number; goalsCompleted: number }>;
+  monthlyHistory: Array<{ month: string; saved: number; goalsCompleted: number; manualSaved?: number }>;
   totalGoalsCompleted: number;
   averageMonthlySaving: number;
   bestMonth: { month: string; saved: number } | null;
   currentStreak: number;
   totalMonths: number;
+}
+
+interface MonthlyTransactionFlow {
+  totalIncome: number;
+  totalExpenses: number;
+  netFlow: number;
 }
 
 const SalaryPlanner: React.FC = () => {
@@ -2099,6 +2105,11 @@ const SalaryPlanner: React.FC = () => {
     totalMonths: 0
   })
   const [manualSavings, setManualSavings] = useState<number>(0)
+  const [monthlyTransactionFlow, setMonthlyTransactionFlow] = useState<MonthlyTransactionFlow>({
+    totalIncome: 0,
+    totalExpenses: 0,
+    netFlow: 0
+  })
   const [showBillForm, setShowBillForm] = useState<boolean>(false)
   const [showGoalForm, setShowGoalForm] = useState<boolean>(false)
   const [showSubscriptionForm, setShowSubscriptionForm] = useState<boolean>(false)
@@ -2135,6 +2146,7 @@ const SalaryPlanner: React.FC = () => {
         setVariableExpenses(data.variableExpenses || { totalSpent: 0, categories: [] })
         setSavingsGoals(data.savingsGoals || [])
         setSubscriptions(data.subscriptions || [])
+        setMonthlyTransactionFlow(data.transactionFlow || { totalIncome: 0, totalExpenses: 0, netFlow: 0 })
         
         // Initialize default bills and subscriptions if empty
         if ((!data.fixedBills || data.fixedBills.length === 0) && 
@@ -2255,12 +2267,16 @@ const SalaryPlanner: React.FC = () => {
 
   const updateCumulativeSavings = async () => {
     try {
-      const currentMonthSaved = savingsGoals.reduce((sum, goal) => sum + (goal.savedAmount || 0), 0) + manualSavings
+      const currentMonthSaved =
+        savingsGoals.reduce((sum, goal) => sum + (goal.savedAmount || 0), 0) +
+        manualSavings +
+        monthlyTransactionFlow.netFlow
       const goalsCompleted = savingsGoals.filter(goal => goal.savedAmount >= goal.targetAmount).length
       
       await api.put('/api/salary-planner/cumulative-savings', {
         month: currentMonth,
         saved: currentMonthSaved,
+        manualSaved: manualSavings,
         goalsCompleted
       })
       
@@ -2550,9 +2566,11 @@ const SalaryPlanner: React.FC = () => {
       setSaving(true)
       const newTotal = manualSavings + amount
       setManualSavings(newTotal)
+      const goalSavings = savingsGoals.reduce((sum, goal) => sum + (goal.savedAmount || 0), 0)
       await api.put('/api/salary-planner/cumulative-savings', {
         month: currentMonth,
-        saved: newTotal,
+        saved: goalSavings + newTotal + monthlyTransactionFlow.netFlow,
+        manualSaved: newTotal,
         goalsCompleted: savingsGoals.filter(goal => goal.savedAmount >= goal.targetAmount).length
       })
       await loadCumulativeSavings()
@@ -2570,9 +2588,11 @@ const SalaryPlanner: React.FC = () => {
       setSaving(true)
       const newTotal = Math.max(0, manualSavings - amount)
       setManualSavings(newTotal)
+      const goalSavings = savingsGoals.reduce((sum, goal) => sum + (goal.savedAmount || 0), 0)
       await api.put('/api/salary-planner/cumulative-savings', {
         month: currentMonth,
-        saved: newTotal,
+        saved: goalSavings + newTotal + monthlyTransactionFlow.netFlow,
+        manualSaved: newTotal,
         goalsCompleted: savingsGoals.filter(goal => goal.savedAmount >= goal.targetAmount).length
       })
       await loadCumulativeSavings()
@@ -2591,8 +2611,35 @@ const SalaryPlanner: React.FC = () => {
   const totalSubscriptionCost = subscriptions.reduce((sum, sub) => sum + (sub.status === 'active' ? sub.monthlyCost : 0), 0)
   const remainingAfterFixed = salary.amount - totalFixedBills
   const remainingAfterSubscriptions = remainingAfterFixed - totalSubscriptionCost
+  const availableToSpend = remainingAfterSubscriptions + monthlyTransactionFlow.netFlow
+  const currentMonthSavings = availableToSpend
+  const previousMonthsSavings = cumulativeSavings.monthlyHistory
+    .filter((entry) => entry.month !== currentMonth)
+    .reduce((sum, entry) => sum + (Number(entry.saved) || 0), 0)
+  const totalSavingsValue = previousMonthsSavings + currentMonthSavings
   const safeDailySpending = calculateSafeDailySpending()
   const projectedOverspend = calculateProjectedOverspend()
+
+  useEffect(() => {
+    if (!user || loading) return
+
+    const goalsCompleted = savingsGoals.filter(goal => goal.savedAmount >= goal.targetAmount).length
+    const syncCurrentMonthSavings = async () => {
+      try {
+        await api.put('/api/salary-planner/cumulative-savings', {
+          month: currentMonth,
+          saved: currentMonthSavings,
+          manualSaved: manualSavings,
+          goalsCompleted
+        })
+        await loadCumulativeSavings()
+      } catch (error) {
+        console.error('Error syncing current month savings:', error)
+      }
+    }
+
+    void syncCurrentMonthSavings()
+  }, [user, loading, currentMonth, currentMonthSavings, manualSavings, savingsGoals])
 
   if (!user || loading) {
     return <div className="flex items-center justify-center min-h-screen">
@@ -2826,7 +2873,10 @@ const SalaryPlanner: React.FC = () => {
             <div className="space-y-4 flex-1">
               <div className="p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
                 <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-2">Current Month Spending</h4>
-                <p className="text-2xl font-bold text-blue-600 dark:text-rose-300">{formatCurrency(variableExpenses.totalSpent || 0)}</p>
+                <p className="text-2xl font-bold text-blue-600 dark:text-rose-300">{formatCurrency(monthlyTransactionFlow.netFlow || 0)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Income {formatCurrency(monthlyTransactionFlow.totalIncome || 0)} - Expenses {formatCurrency(monthlyTransactionFlow.totalExpenses || 0)}
+                </p>
               </div>
               <div className="p-4 bg-yellow-50 dark:bg-amber-900/30 rounded-lg">
                 <h4 className="font-medium text-gray-900 dark:text-amber-100 mb-2">Remaining After Bills</h4>
@@ -2834,7 +2884,7 @@ const SalaryPlanner: React.FC = () => {
               </div>
               <div className="p-4 bg-purple-50 dark:bg-violet-900/35 rounded-lg">
                 <h4 className="font-medium text-gray-900 dark:text-violet-100 mb-2">Available to Spend</h4>
-                <p className="text-2xl font-bold text-purple-700 dark:text-violet-300">{formatCurrency(remainingAfterSubscriptions)}</p>
+                <p className="text-2xl font-bold text-purple-700 dark:text-violet-300">{formatCurrency(availableToSpend)}</p>
               </div>
             </div>
           </div>
@@ -2851,7 +2901,7 @@ const SalaryPlanner: React.FC = () => {
               </div>
             </div>
             <div className="text-center flex-1">
-              <div className="text-3xl sm:text-4xl font-bold mb-2 break-words">{formatCurrency(manualSavings)}</div>
+              <div className="text-3xl sm:text-4xl font-bold mb-2 break-words">{formatCurrency(currentMonthSavings)}</div>
               <p className="text-blue-100 text-sm">Tracked this month</p>
             </div>
           </div>
@@ -2862,7 +2912,7 @@ const SalaryPlanner: React.FC = () => {
               <div className="flex items-center"><Flame className="h-4 w-4 mr-1" /> <span>{cumulativeSavings.currentStreak}mo streak</span></div>
             </div>
             <div className="text-center flex-1">
-              <div className="text-3xl sm:text-4xl font-bold mb-2 break-words">{formatCurrency(cumulativeSavings.totalSaved + manualSavings)}</div>
+              <div className="text-3xl sm:text-4xl font-bold mb-2 break-words">{formatCurrency(totalSavingsValue)}</div>
               <p className="text-emerald-100 text-sm">Portfolio Value</p>
             </div>
           </div>

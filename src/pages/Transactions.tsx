@@ -5,7 +5,6 @@ import { api } from '../api'
 import API from '../api'
 import { useCurrency } from '../contexts/CurrencyContext'
 import { useDateFormatter } from '../utils/datePreferences'
-import axios from 'axios' // Required for the handleDelete logic in your snippet
 
 // --- Interfaces to maintain strict typing ---
 interface Transaction {
@@ -180,8 +179,8 @@ const Transactions: React.FC = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
       try {
-        await axios.delete(`${API.TRANSACTIONS}/${id}`)
-        fetchTransactions()
+        await api.delete(`${API.TRANSACTIONS}/${id}`)
+        await fetchTransactions()
 
         window.dispatchEvent(new CustomEvent('transaction-updated'))
       } catch (error) {
