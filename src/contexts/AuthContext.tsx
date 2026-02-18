@@ -95,6 +95,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       return { success: true }
     } catch (error: any) {
+      if (error.response?.status === 429) {
+        const retryAfter = error.response?.headers?.['retry-after']
+        const suffix = retryAfter ? ` Retry after ${retryAfter} seconds.` : ''
+        return {
+          success: false,
+          error: `Too many login attempts.${suffix}`
+        }
+      }
       return { 
         success: false, 
         error: error.response?.data?.message || 'Login failed' 

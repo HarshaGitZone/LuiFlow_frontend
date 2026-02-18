@@ -10,7 +10,6 @@ import {
   User,
   Settings,
   LogOut,
-  Menu,
   Sun,
   Moon,
   TrendingUp,
