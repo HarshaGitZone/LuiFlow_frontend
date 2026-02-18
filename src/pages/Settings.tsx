@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react'
 import { Database, Shield, AlertTriangle, X } from 'lucide-react'
 import { useCurrency } from '../contexts/CurrencyContext'
-import { api, API } from '../api'
+import { api, API, getAuthToken } from '../api'
 import {
   DATE_FORMAT_OPTIONS,
   DEFAULT_DATE_FORMAT,
@@ -120,7 +120,7 @@ const SettingsPage = () => {
   const handleClearData = async () => {
     setIsClearing(true)
     try {
-      const token = localStorage.getItem('token')
+      const token = getAuthToken()
       const response = await fetch('/api/clear-all-data', {
         method: 'DELETE',
         headers: {

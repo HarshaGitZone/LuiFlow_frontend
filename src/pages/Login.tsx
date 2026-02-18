@@ -338,6 +338,7 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
   const [error, setError] = useState<string>('')
+  const [rememberMe, setRememberMe] = useState<boolean>(false)
   
   const { login } = useAuth()
   const navigate = useNavigate()
@@ -354,7 +355,7 @@ const Login: React.FC = () => {
     setLoading(true)
     setError('')
 
-    const result = await login(formData.email, formData.password)
+    const result = await login(formData.email, formData.password, rememberMe)
     
     // if (result.success) {
     //   navigate('/')
@@ -455,6 +456,8 @@ const Login: React.FC = () => {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900 dark:text-gray-200">

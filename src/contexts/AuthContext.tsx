@@ -11,7 +11,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>
   register: (userData: any) => Promise<{ success: boolean; error?: string }>
   logout: () => void
   updateProfile: (userData: any) => Promise<{ success: boolean; error?: string }>
@@ -27,9 +27,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const TOKEN_STORAGE_KEY = 'token'
 const USER_STORAGE_KEY = 'auth_user'
 
+const getStoredToken = (): string | null =>
+  localStorage.getItem(TOKEN_STORAGE_KEY) || sessionStorage.getItem(TOKEN_STORAGE_KEY)
+
+const clearStoredAuth = (): void => {
+  localStorage.removeItem(TOKEN_STORAGE_KEY)
+  sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+  localStorage.removeItem(USER_STORAGE_KEY)
+  sessionStorage.removeItem(USER_STORAGE_KEY)
+}
+
 const getStoredUser = (): User | null => {
   try {
-    const raw = localStorage.getItem(USER_STORAGE_KEY)
+    const raw = localStorage.getItem(USER_STORAGE_KEY) || sessionStorage.getItem(USER_STORAGE_KEY)
     return raw ? JSON.parse(raw) : null
   } catch {
     return null
@@ -48,17 +58,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(() => getStoredUser())
   const [loading, setLoading] = useState(true)
 
-  const persistUser = (nextUser: User | null) => {
+  const persistUser = (nextUser: User | null, rememberMe = true) => {
     setUser(nextUser)
     if (nextUser) {
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser))
+      if (rememberMe) {
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser))
+        sessionStorage.removeItem(USER_STORAGE_KEY)
+      } else {
+        sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(nextUser))
+        localStorage.removeItem(USER_STORAGE_KEY)
+      }
     } else {
       localStorage.removeItem(USER_STORAGE_KEY)
+      sessionStorage.removeItem(USER_STORAGE_KEY)
     }
   }
 
   useEffect(() => {
-    const token = localStorage.getItem(TOKEN_STORAGE_KEY)
+    const token = getStoredToken()
     if (token) {
       fetchUserProfile()
     } else {
@@ -72,12 +89,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await api.get('/api/auth/profile')
       const profileUser = response?.data?.data?.user
       if (profileUser) {
-        persistUser(profileUser)
+        const isRememberedSession = !!localStorage.getItem(TOKEN_STORAGE_KEY)
+        persistUser(profileUser, isRememberedSession)
       }
     } catch (error: any) {
       console.error('Failed to fetch user profile:', error)
       if ([401, 403, 404].includes(error.response?.status)) {
-        localStorage.removeItem(TOKEN_STORAGE_KEY)
+        clearStoredAuth()
         persistUser(null)
       }
     } finally {
@@ -85,13 +103,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe = false) => {
     try {
       const response = await api.post('/api/auth/login', { email, password })
       const { token, user } = response.data.data
-      
-      localStorage.setItem(TOKEN_STORAGE_KEY, token)
-      persistUser(user)
+
+      if (rememberMe) {
+        localStorage.setItem(TOKEN_STORAGE_KEY, token)
+        sessionStorage.removeItem(TOKEN_STORAGE_KEY)
+      } else {
+        sessionStorage.setItem(TOKEN_STORAGE_KEY, token)
+        localStorage.removeItem(TOKEN_STORAGE_KEY)
+      }
+      persistUser(user, rememberMe)
       
       return { success: true }
     } catch (error: any) {
@@ -116,6 +140,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const { token, user } = response.data.data
       
       localStorage.setItem(TOKEN_STORAGE_KEY, token)
+      sessionStorage.removeItem(TOKEN_STORAGE_KEY)
       persistUser(user)
       
       return { success: true }
@@ -128,7 +153,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   const logout = () => {
-    localStorage.removeItem(TOKEN_STORAGE_KEY)
+    clearStoredAuth()
     persistUser(null)
     // Clear all user-related data from storage
     clearUserData()
